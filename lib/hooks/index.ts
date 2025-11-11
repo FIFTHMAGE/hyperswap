@@ -1,0 +1,2 @@
+export { useWrappedData } from './useWrappedData';
+
