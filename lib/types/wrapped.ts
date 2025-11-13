@@ -1,51 +1,61 @@
-import { DeFiProtocol, SwapActivity } from './defi';
-import { TokenBalance } from './token';
-import { NFTBalance } from './nft';
+/**
+ * Enhanced wrapped analytics types
+ */
 
-export interface WalletWrappedStats {
-  address: string;
-  year: number;
-  
-  // Transaction stats
-  totalTransactions: number;
-  transactionsByChain: Record<number, number>;
-  firstTransactionDate: string;
-  mostActiveChain: {
-    chainId: number;
-    chainName: string;
-    transactionCount: number;
-  };
-  
-  // Gas stats
-  totalGasSpent: {
-    eth: string;
-    usd: number;
-  };
-  gasSpentByChain: Record<number, { eth: string; usd: number }>;
-  
-  // Financial stats
-  totalValueSent: number;
-  totalValueReceived: number;
-  currentPortfolioValue: number;
-  
-  // Activity stats
-  activeDays: number;
-  activeMonths: number;
-  
-  // Token stats
-  topTokens: TokenBalance[];
-  uniqueTokensHeld: number;
-  
-  // NFT stats
-  nftCollections: NFTBalance[];
-  totalNFTsHeld: number;
-  
-  // DeFi stats
-  defiProtocolsUsed: DeFiProtocol[];
-  totalSwaps: number;
-  swapActivity: SwapActivity[];
-  
-  // Summary
-  rank?: 'Whale' | 'Active Trader' | 'HODLer' | 'DeFi Native' | 'NFT Collector' | 'Explorer';
+export interface QuarterlyBreakdown {
+  quarter: string;
+  transactions: number;
+  volume: number;
+  gasSpent: number;
+  topActivity: string;
 }
 
+export interface NFTAnalytics {
+  totalNFTs: number;
+  collections: {
+    name: string;
+    count: number;
+    floorPrice: number;
+  }[];
+  totalValue: number;
+  mostValuableNFT: {
+    name: string;
+    collection: string;
+    value: number;
+  };
+}
+
+export interface DeFiActivity {
+  protocol: string;
+  interactions: number;
+  volume: number;
+  category: 'lending' | 'dex' | 'staking' | 'yield' | 'other';
+  profit: number;
+}
+
+export interface WhaleTransaction {
+  hash: string;
+  timestamp: number;
+  value: number;
+  from: string;
+  to: string;
+  type: 'sent' | 'received';
+}
+
+export interface TokenHolding {
+  symbol: string;
+  holdDuration: number;
+  avgBuyPrice: number;
+  currentPrice: number;
+  profitLoss: number;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  earnedDate?: number;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
