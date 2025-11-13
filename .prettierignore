@@ -1,6 +1,10 @@
-.next
 node_modules
-*.lock
+.next
+out
+dist
+build
+coverage
+.env*.local
 *.log
-.env*
-
+.DS_Store
+public/sw.js
