@@ -1,48 +1,100 @@
-export type MessageHandler = (data: any) => void;
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+/**
+ * WebSocket client for real-time data
+ */
+
+export type WSEventType = 'price_update' | 'trade' | 'order_book' | 'notification';
+
+export interface WSMessage {
+  type: WSEventType;
+  data: any;
+  timestamp: number;
+}
 
 export class WebSocketClient {
   private ws: WebSocket | null = null;
-  private url: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
-  private statusHandlers: Set<(status: ConnectionStatus) => void> = new Set();
+  private listeners: Map<WSEventType, Set<(data: any) => void>> = new Map();
 
-  constructor(url: string) {
-    this.url = url;
+  constructor(private url: string) {}
+
+  connect(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.ws = new WebSocket(this.url);
+
+        this.ws.onopen = () => {
+          console.log('WebSocket connected');
+          this.reconnectAttempts = 0;
+          resolve();
+        };
+
+        this.ws.onmessage = (event) => {
+          const message: WSMessage = JSON.parse(event.data);
+          this.handleMessage(message);
+        };
+
+        this.ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          reject(error);
+        };
+
+        this.ws.onclose = () => {
+          console.log('WebSocket disconnected');
+          this.attemptReconnect();
+        };
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
-  connect(): void {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      
+      console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
+      
+      setTimeout(() => {
+        this.connect();
+      }, delay);
+    }
+  }
 
-    this.setStatus('connecting');
-    this.ws = new WebSocket(this.url);
+  private handleMessage(message: WSMessage): void {
+    const listeners = this.listeners.get(message.type);
+    if (listeners) {
+      listeners.forEach((callback) => callback(message.data));
+    }
+  }
 
-    this.ws.onopen = () => {
-      this.reconnectAttempts = 0;
-      this.setStatus('connected');
-    };
+  subscribe(type: WSEventType, callback: (data: any) => void): () => void {
+    if (!this.listeners.has(type)) {
+      this.listeners.set(type, new Set());
+    }
+    
+    this.listeners.get(type)!.add(callback);
 
-    this.ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        this.handleMessage(message);
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
+    // Return unsubscribe function
+    return () => {
+      const listeners = this.listeners.get(type);
+      if (listeners) {
+        listeners.delete(callback);
       }
     };
+  }
 
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      this.setStatus('error');
-    };
-
-    this.ws.onclose = () => {
-      this.setStatus('disconnected');
-      this.attemptReconnect();
-    };
+  send(type: WSEventType, data: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const message: WSMessage = {
+        type,
+        data,
+        timestamp: Date.now(),
+      };
+      this.ws.send(JSON.stringify(message));
+    }
   }
 
   disconnect(): void {
@@ -51,54 +103,8 @@ export class WebSocketClient {
       this.ws = null;
     }
   }
-
-  send(type: string, data: any): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type, data }));
-    }
-  }
-
-  subscribe(channel: string, handler: MessageHandler): () => void {
-    if (!this.messageHandlers.has(channel)) {
-      this.messageHandlers.set(channel, new Set());
-      this.send('subscribe', { channel });
-    }
-
-    this.messageHandlers.get(channel)!.add(handler);
-
-    return () => {
-      const handlers = this.messageHandlers.get(channel);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          this.messageHandlers.delete(channel);
-          this.send('unsubscribe', { channel });
-        }
-      }
-    };
-  }
-
-  onStatusChange(handler: (status: ConnectionStatus) => void): () => void {
-    this.statusHandlers.add(handler);
-    return () => this.statusHandlers.delete(handler);
-  }
-
-  private handleMessage(message: { channel: string; data: any }): void {
-    const handlers = this.messageHandlers.get(message.channel);
-    if (handlers) {
-      handlers.forEach(handler => handler(message.data));
-    }
-  }
-
-  private setStatus(status: ConnectionStatus): void {
-    this.statusHandlers.forEach(handler => handler(status));
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      setTimeout(() => this.connect(), this.reconnectDelay * this.reconnectAttempts);
-    }
-  }
 }
 
+export const wsClient = new WebSocketClient(
+  process.env.NEXT_PUBLIC_WS_URL || 'wss://api.hyperswap.io/ws'
+);
