@@ -1,40 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchMultiChainTransactions, fetchMultiChainBalances, fetchMultiChainNFTs } from '@/lib/api/multichain';
-import { processWalletData } from '@/lib/analytics/processor';
-import { determineWalletRank } from '@/lib/analytics/ranking';
+import { wrappedAnalyticsService } from '@/lib/api/wrapped-analytics';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const address = searchParams.get('address');
-
-  if (!address) {
-    return NextResponse.json(
-      { error: 'Address is required' },
-      { status: 400 }
-    );
-  }
-
+export async function POST(request: NextRequest) {
   try {
-    // Fetch data from all chains in parallel
-    const [transactions, balances, nfts] = await Promise.all([
-      fetchMultiChainTransactions(address),
-      fetchMultiChainBalances(address),
-      fetchMultiChainNFTs(address),
-    ]);
+    const { address, year } = await request.json();
 
-    // Process the data
-    const stats = processWalletData(address, transactions, balances, nfts);
-    
-    // Determine wallet rank
-    stats.rank = determineWalletRank(stats);
+    if (!address || !year) {
+      return NextResponse.json(
+        { error: 'Address and year are required' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({ data: stats });
+    const wrappedData = await wrappedAnalyticsService.generateWrappedData(
+      address,
+      year
+    );
+
+    return NextResponse.json(wrappedData);
   } catch (error) {
-    console.error('Error fetching wallet data:', error);
+    console.error('Wrapped generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch wallet data' },
+      { error: 'Failed to generate wrapped' },
       { status: 500 }
     );
   }
 }
 
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const address = searchParams.get('address');
+  const year = searchParams.get('year');
+
+  if (!address || !year) {
+    return NextResponse.json(
+      { error: 'Address and year are required' },
+      { status: 400 }
+    );
+  }
+
+  // Mock wrapped data retrieval
+  return NextResponse.json({
+    address,
+    year: parseInt(year),
+    generated: true,
+  });
+}
