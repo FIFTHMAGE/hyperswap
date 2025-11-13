@@ -1,11 +1,60 @@
+# Dependencies
 node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+coverage
+.nyc_output
+__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+test-results
+playwright-report
+
+# Development
+.git
+.gitignore
+.env
+.env.local
+.env*.local
+!.env.example
+
+# Build artifacts
 .next
 out
 dist
-.env*.local
-*.log
-.DS_Store
-.git
-.gitignore
-README.md
+build
 
+# Cache
+.cache
+.turbo
+.swc
+**/.DS_Store
+
+# Documentation
+*.md
+!README.md
+docs
+.vscode
+.idea
+
+# CI/CD
+.github
+.husky
+
+# Misc
+Dockerfile
+docker-compose.yml
+.dockerignore
+.prettierrc
+.prettierignore
+.eslintrc*
+jest.config.*
+playwright.config.*
+tsconfig.json
