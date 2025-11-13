@@ -1,106 +1,189 @@
-export async function registerBackgroundSync(tag: string): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-    console.warn('Background Sync not supported');
-    return false;
-  }
+/**
+ * Background Sync
+ * Queue and sync data when connection is restored
+ */
 
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    await registration.sync.register(tag);
-    return true;
-  } catch (error) {
-    console.error('Background sync registration failed:', error);
-    return false;
-  }
-}
-
-export async function getTags(): Promise<string[]> {
-  if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-    return [];
-  }
-
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    return await registration.sync.getTags();
-  } catch (error) {
-    console.error('Failed to get sync tags:', error);
-    return [];
-  }
-}
-
-// Queue for offline actions
-interface QueuedAction {
+export interface SyncTask {
   id: string;
   type: string;
   data: any;
   timestamp: number;
+  retries: number;
+  maxRetries: number;
 }
 
-class ActionQueue {
-  private queue: QueuedAction[] = [];
-  private storageKey = 'pwa-action-queue';
+export class BackgroundSyncManager {
+  private tasks: Map<string, SyncTask> = new Map();
+  private isProcessing = false;
+  private readonly STORAGE_KEY = 'bg-sync-tasks';
 
   constructor() {
-    this.loadQueue();
+    this.loadTasks();
+    this.setupListeners();
   }
 
-  add(type: string, data: any): string {
-    const action: QueuedAction = {
-      id: `${Date.now()}-${Math.random()}`,
-      type,
+  /**
+   * Register a sync task
+   */
+  async register(tag: string, data: any, maxRetries: number = 3): Promise<string> {
+    const id = `${tag}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const task: SyncTask = {
+      id,
+      type: tag,
       data,
       timestamp: Date.now(),
+      retries: 0,
+      maxRetries,
     };
 
-    this.queue.push(action);
-    this.saveQueue();
-    registerBackgroundSync('sync-wallet-data');
-    
-    return action.id;
-  }
+    this.tasks.set(id, task);
+    this.saveTasks();
 
-  remove(id: string): boolean {
-    const index = this.queue.findIndex(a => a.id === id);
-    if (index !== -1) {
-      this.queue.splice(index, 1);
-      this.saveQueue();
-      return true;
+    // Register with Background Sync API if available
+    if ('sync' in registration) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await (reg as any).sync.register(tag);
+      } catch (error) {
+        console.warn('Background Sync API not available, will use fallback');
+      }
     }
-    return false;
+
+    // Try to process immediately if online
+    if (navigator.onLine) {
+      this.processTasks();
+    }
+
+    return id;
   }
 
-  getAll(): QueuedAction[] {
-    return [...this.queue];
+  /**
+   * Process all pending tasks
+   */
+  private async processTasks(): Promise<void> {
+    if (this.isProcessing || !navigator.onLine) return;
+
+    this.isProcessing = true;
+
+    for (const [id, task] of this.tasks.entries()) {
+      try {
+        await this.processTask(task);
+        this.tasks.delete(id);
+      } catch (error) {
+        console.error(`Task ${id} failed:`, error);
+        task.retries++;
+        
+        if (task.retries >= task.maxRetries) {
+          console.error(`Task ${id} exceeded max retries, removing`);
+          this.tasks.delete(id);
+        }
+      }
+    }
+
+    this.saveTasks();
+    this.isProcessing = false;
   }
 
-  clear(): void {
-    this.queue = [];
-    this.saveQueue();
+  /**
+   * Process individual task
+   */
+  private async processTask(task: SyncTask): Promise<void> {
+    // Dispatch custom event for handlers
+    const event = new CustomEvent('backgroundsync', {
+      detail: task,
+    });
+    window.dispatchEvent(event);
+
+    // Default handler - make API request
+    if (task.data.url) {
+      const response = await fetch(task.data.url, {
+        method: task.data.method || 'POST',
+        headers: task.data.headers || {},
+        body: JSON.stringify(task.data.body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    }
   }
 
-  private loadQueue(): void {
-    if (typeof window === 'undefined') return;
-    
+  /**
+   * Setup listeners
+   */
+  private setupListeners(): void {
+    // Process when coming online
+    window.addEventListener('online', () => {
+      this.processTasks();
+    });
+
+    // Listen for service worker sync events
+    navigator.serviceWorker?.addEventListener('message', (event) => {
+      if (event.data?.type === 'SYNC_COMPLETE') {
+        const taskId = event.data.taskId;
+        this.tasks.delete(taskId);
+        this.saveTasks();
+      }
+    });
+  }
+
+  /**
+   * Load tasks from storage
+   */
+  private loadTasks(): void {
     try {
-      const stored = localStorage.getItem(this.storageKey);
+      const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        this.queue = JSON.parse(stored);
+        const tasks = JSON.parse(stored);
+        this.tasks = new Map(tasks);
       }
     } catch (error) {
-      console.error('Failed to load action queue:', error);
+      console.error('Failed to load background sync tasks:', error);
     }
   }
 
-  private saveQueue(): void {
-    if (typeof window === 'undefined') return;
-    
+  /**
+   * Save tasks to storage
+   */
+  private saveTasks(): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.queue));
+      const tasks = Array.from(this.tasks.entries());
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(tasks));
     } catch (error) {
-      console.error('Failed to save action queue:', error);
+      console.error('Failed to save background sync tasks:', error);
     }
+  }
+
+  /**
+   * Get pending tasks count
+   */
+  getPendingCount(): number {
+    return this.tasks.size;
+  }
+
+  /**
+   * Get all tasks
+   */
+  getTasks(): SyncTask[] {
+    return Array.from(this.tasks.values());
+  }
+
+  /**
+   * Clear all tasks
+   */
+  clearAll(): void {
+    this.tasks.clear();
+    this.saveTasks();
   }
 }
 
-export const actionQueue = new ActionQueue();
+// Singleton
+let bgSyncManager: BackgroundSyncManager | null = null;
 
+export function getBackgroundSyncManager(): BackgroundSyncManager {
+  if (!bgSyncManager && typeof window !== 'undefined') {
+    bgSyncManager = new BackgroundSyncManager();
+  }
+  return bgSyncManager!;
+}
