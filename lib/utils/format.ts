@@ -1,30 +1,40 @@
-export function formatAddress(address: string, startChars = 6, endChars = 4): string {
-  if (!address) return '';
-  if (address.length < startChars + endChars) return address;
-  return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
-}
+/**
+ * Formatting utilities
+ */
 
-export function formatNumber(value: number, decimals = 2): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(decimals)}M`;
+export class FormatUtils {
+  static formatCurrency(value: number, decimals: number = 2): string {
+    if (value >= 1_000_000_000) {
+      return `$${(value / 1_000_000_000).toFixed(decimals)}B`;
+    }
+    if (value >= 1_000_000) {
+      return `$${(value / 1_000_000).toFixed(decimals)}M`;
+    }
+    if (value >= 1_000) {
+      return `$${(value / 1_000).toFixed(decimals)}K`;
+    }
+    return `$${value.toFixed(decimals)}`;
   }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(decimals)}K`;
+
+  static formatNumber(value: number, decimals: number = 2): string {
+    return value.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   }
-  return value.toFixed(decimals);
-}
 
-export function formatCurrency(value: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
+  static formatPercentage(value: number, decimals: number = 2): string {
+    return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
+  }
 
-export function formatTokenAmount(amount: string, decimals: number): string {
-  const value = parseFloat(amount) / Math.pow(10, decimals);
-  return value.toFixed(4);
-}
+  static formatAddress(address: string, chars: number = 4): string {
+    return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
+  }
 
+  static formatTime(seconds: number): string {
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+  }
+}
