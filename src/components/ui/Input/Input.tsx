@@ -1,0 +1,54 @@
+/**
+ * Input component with validation states
+ * @module components/ui/Input
+ */
+
+'use client';
+
+import { forwardRef, type InputHTMLAttributes } from 'react';
+import { styled } from 'nativewind';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+  helperText?: string;
+  fullWidth?: boolean;
+}
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, helperText, fullWidth = false, className = '', ...props }, ref) => {
+    const baseClasses = 'px-4 py-2 border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:bg-gray-100 disabled:cursor-not-allowed';
+    
+    const stateClasses = error
+      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500';
+    
+    const widthClass = fullWidth ? 'w-full' : '';
+    
+    return (
+      <div className={widthClass}>
+        {label && (
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {label}
+          </label>
+        )}
+        <input
+          ref={ref}
+          className={`${baseClasses} ${stateClasses} ${widthClass} ${className}`}
+          {...props}
+        />
+        {error && (
+          <p className="mt-1 text-sm text-red-600">{error}</p>
+        )}
+        {!error && helperText && (
+          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+        )}
+      </div>
+    );
+  }
+);
+
+Input.displayName = 'Input';
+
+export default styled(Input);
+
