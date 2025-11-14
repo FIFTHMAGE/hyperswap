@@ -48,3 +48,32 @@ export * from './analytics/performance.service';
 // Export services
 export * from './export/pdf.service';
 export * from './export/csv.service';
+
+// Swap services
+export * from './swap/aggregator.service';
+export * from './swap/quote.service';
+export * from './swap/execution.service';
+export * from './swap/history.service';
+export * from './swap/route-optimizer.service';
+
+// Liquidity services
+export * from './liquidity/pool-discovery.service';
+export * from './liquidity/pool-analytics.service';
+export * from './liquidity/position-tracker.service';
+export * from './liquidity/il-calculator.service';
+
+// Portfolio services
+export * from './portfolio/balance.service';
+export * from './portfolio/valuation.service';
+export * from './portfolio/transaction-history.service';
+export * from './portfolio/pnl-calculator.service';
+
+// Wrapped services
+export * from './wrapped/data-aggregator.service';
+export * from './wrapped/statistics.service';
+export * from './wrapped/generator.service';
+export * from './wrapped/share.service';
+
+// Token services
+export * from './token/metadata.service';
+export * from './token/favorites.service';
