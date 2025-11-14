@@ -1,17 +1,16 @@
 /**
- * Components Index
- * 
- * Central export point for all React components.
- * This file provides barrel exports for component modules.
- * 
+ * Components barrel export
  * @module components
  */
 
-// Components will be exported here as they are created
-// export * from './ui';
-// export * from './swap';
-// export * from './liquidity';
+// UI Components
+export * from './ui';
 
-// Placeholder for future component exports
-export {};
+// Swap Components
+export * from './swap';
 
+// Liquidity Components
+export * from './liquidity';
+
+// Portfolio Components
+export * from './portfolio';
