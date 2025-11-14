@@ -1,17 +1,35 @@
 /**
- * Utilities Index
- * 
- * Central export point for all utility functions.
- * This file provides barrel exports for utility modules.
- * 
+ * Utils barrel export
  * @module utils
  */
 
-// Utilities will be exported here as they are created
-// export * from './format';
-// export * from './validation';
-// export * from './calculation';
+// Format utilities
+export * from './format/number';
+export * from './format/currency';
+export * from './format/date';
+export * from './format/address';
+export * from './format/percentage';
 
-// Placeholder for future utility exports
-export {};
+// Validation utilities
+export * from './validation/address';
+export * from './validation/amount';
+export * from './validation/transaction';
 
+// Calculation utilities
+export * from './calculation/gas';
+export * from './calculation/price';
+export * from './calculation/slippage';
+export * from './calculation/portfolio';
+
+// Async utilities
+export * from './async/retry';
+export * from './async/debounce';
+export * from './async/throttle';
+
+// Browser utilities
+export * from './browser/detection';
+export * from './browser/storage';
+
+// Helper utilities
+export * from './helpers/array';
+export * from './helpers/object';
