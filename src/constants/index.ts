@@ -1,17 +1,11 @@
 /**
- * Constants Index
- * 
- * Central export point for all application constants.
- * This file provides barrel exports for constant modules.
- * 
+ * Constants barrel export
  * @module constants
  */
 
-// Constants will be exported here as they are created
-// export * from './blockchain';
-// export * from './tokens';
-// export * from './ui';
-
-// Placeholder for future constant exports
-export {};
-
+export * from './blockchain';
+export * from './tokens';
+export * from './dex';
+export * from './api';
+export * from './ui';
+export * from './validation';
