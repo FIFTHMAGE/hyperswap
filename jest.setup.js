@@ -1,4 +1,13 @@
-import '@testing-library/jest-dom'
+/**
+ * Jest setup file
+ */
+
+// Learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+
+// Mock environment variables
+process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID = 'test-project-id';
+process.env.COVALENT_API_KEY = 'test-api-key';
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -7,13 +16,13 @@ Object.defineProperty(window, 'matchMedia', {
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
+    addListener: jest.fn(), // Deprecated
+    removeListener: jest.fn(), // Deprecated
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
   })),
-})
+});
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
@@ -21,16 +30,10 @@ global.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
   observe() {}
   takeRecords() {
-    return []
+    return [];
   }
   unobserve() {}
-}
+};
 
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
-}
-
+// Mock fetch
+global.fetch = jest.fn();
