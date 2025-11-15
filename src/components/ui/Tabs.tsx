@@ -1,57 +1,60 @@
+/**
+ * Tabs component
+ * @module components/ui
+ */
+
 'use client';
 
-import { motion } from 'framer-motion';
-import { ReactNode, useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
-export interface Tab {
-  id: string;
+interface TabItem {
   label: string;
   content: ReactNode;
+  disabled?: boolean;
 }
 
 interface TabsProps {
-  tabs: Tab[];
-  defaultTab?: string;
+  items: TabItem[];
+  defaultIndex?: number;
+  onChange?: (index: number) => void;
+  className?: string;
 }
 
-export function Tabs({ tabs, defaultTab }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
+export function Tabs({ items, defaultIndex = 0, onChange, className = '' }: TabsProps) {
+  const [activeIndex, setActiveIndex] = useState(defaultIndex);
 
-  const activeContent = tabs.find(tab => tab.id === activeTab)?.content;
+  const handleTabClick = (index: number) => {
+    if (items[index].disabled) return;
+
+    setActiveIndex(index);
+    onChange?.(index);
+  };
 
   return (
-    <div className="w-full">
-      <div className="flex gap-2 border-b border-white/10 mb-6">
-        {tabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`relative px-4 py-2 font-medium transition-colors ${
-              activeTab === tab.id
-                ? 'text-white'
-                : 'text-white/50 hover:text-white/70'
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500"
-                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              />
-            )}
-          </button>
-        ))}
+    <div className={className}>
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-4">
+          {items.map((item, index) => (
+            <button
+              key={index}
+              onClick={() => handleTabClick(index)}
+              disabled={item.disabled}
+              className={`
+                px-4 py-2 font-medium text-sm border-b-2 transition-colors
+                ${
+                  activeIndex === index
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }
+                ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+              `}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        {activeContent}
-      </motion.div>
+      <div className="mt-4">{items[activeIndex]?.content}</div>
     </div>
   );
 }
-
