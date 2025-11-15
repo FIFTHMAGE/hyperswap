@@ -1,34 +1,51 @@
-'use client';
+/**
+ * Switch component
+ * @module components/ui
+ */
 
-import { motion } from 'framer-motion';
+'use client';
 
 interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
+  disabled?: boolean;
   label?: string;
+  className?: string;
 }
 
-export function Switch({ checked, onChange, label }: SwitchProps) {
+export function Switch({
+  checked,
+  onChange,
+  disabled = false,
+  label,
+  className = '',
+}: SwitchProps) {
   return (
-    <label className="flex items-center space-x-3 cursor-pointer group">
-      <div
-        onClick={() => onChange(!checked)}
-        className={`relative w-12 h-6 rounded-full transition-colors ${
-          checked ? 'bg-purple-600' : 'bg-white/20'
-        }`}
-      >
-        <motion.div
-          animate={{ x: checked ? 24 : 2 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className="absolute top-1 w-4 h-4 bg-white rounded-full shadow"
+    <label className={`inline-flex items-center gap-3 cursor-pointer ${className}`}>
+      <div className="relative">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          disabled={disabled}
+          className="sr-only"
         />
+        <div
+          className={`
+            w-11 h-6 rounded-full transition-colors
+            ${checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          <div
+            className={`
+              absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform
+              ${checked ? 'translate-x-5' : 'translate-x-0'}
+            `}
+          />
+        </div>
       </div>
-      {label && (
-        <span className="text-white/90 group-hover:text-white transition-colors">
-          {label}
-        </span>
-      )}
+      {label && <span className="text-gray-900 dark:text-white">{label}</span>}
     </label>
   );
 }
-

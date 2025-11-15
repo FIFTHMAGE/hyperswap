@@ -1,28 +1,47 @@
+/**
+ * Checkbox component
+ * @module components/ui
+ */
+
 'use client';
 
-import { InputHTMLAttributes, forwardRef } from 'react';
-
-interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  label: string;
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+  disabled?: boolean;
+  indeterminate?: boolean;
+  className?: string;
 }
 
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ label, className = '', ...props }, ref) => {
-    return (
-      <label className="flex items-center space-x-3 cursor-pointer group">
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+  indeterminate = false,
+  className = '',
+}: CheckboxProps) {
+  return (
+    <label className={`inline-flex items-center gap-2 cursor-pointer ${className}`}>
+      <div className="relative">
         <input
-          ref={ref}
           type="checkbox"
-          className={`w-5 h-5 rounded border-2 border-white/20 bg-white/5 text-purple-600 focus:ring-2 focus:ring-purple-500 focus:ring-offset-0 transition-all cursor-pointer ${className}`}
-          {...props}
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          disabled={disabled}
+          className="
+            w-5 h-5 text-blue-600 border-gray-300 dark:border-gray-600 rounded
+            focus:ring-2 focus:ring-blue-500 disabled:opacity-50
+          "
         />
-        <span className="text-white/90 group-hover:text-white transition-colors">
-          {label}
-        </span>
-      </label>
-    );
-  }
-);
-
-Checkbox.displayName = 'Checkbox';
-
+        {indeterminate && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-3 h-0.5 bg-blue-600" />
+          </div>
+        )}
+      </div>
+      {label && <span className="text-gray-900 dark:text-white">{label}</span>}
+    </label>
+  );
+}
