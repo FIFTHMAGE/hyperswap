@@ -1,58 +1,24 @@
 /**
  * Type-related constants
- * @module types/constants
  */
 
-import type { Address } from './blockchain';
+// Status constants
+export const LOADING_STATES = ['idle', 'loading', 'success', 'error'] as const;
+export const TRANSACTION_STATUSES = ['pending', 'confirmed', 'failed', 'cancelled'] as const;
+export const THEME_MODES = ['light', 'dark', 'system'] as const;
+export const TOAST_TYPES = ['success', 'error', 'warning', 'info'] as const;
 
-/**
- * Zero address constant
- */
-export const ZERO_ADDRESS: Address = '0x0000000000000000000000000000000000000000';
+// Size constants
+export const COMPONENT_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+export const MODAL_SIZES = ['sm', 'md', 'lg', 'xl', 'full'] as const;
 
-/**
- * Native token address (used by many protocols)
- */
-export const NATIVE_TOKEN_ADDRESS: Address = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+// Timeframe constants
+export const CHART_TIMEFRAMES = ['1H', '1D', '1W', '1M', '3M', '1Y', 'ALL'] as const;
 
-/**
- * Max uint256 value (for unlimited approvals)
- */
-export const MAX_UINT256 = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+// HTTP method constants
+export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
 
-/**
- * Common token decimals
- */
-export const COMMON_DECIMALS = {
-  ETH: 18,
-  USDC: 6,
-  USDT: 6,
-  DAI: 18,
-  WBTC: 8,
-} as const;
-
-/**
- * Default pagination limit
- */
-export const DEFAULT_PAGE_LIMIT = 20;
-
-/**
- * Maximum pagination limit
- */
-export const MAX_PAGE_LIMIT = 100;
-
-/**
- * Default slippage tolerance (0.5%)
- */
-export const DEFAULT_SLIPPAGE = 0.5;
-
-/**
- * Default transaction deadline (20 minutes)
- */
-export const DEFAULT_DEADLINE = 20;
-
-/**
- * Gas buffer multiplier for estimates
- */
-export const GAS_BUFFER_MULTIPLIER = 1.2;
-
+// Type assertions
+export const assertNever = (value: never): never => {
+  throw new Error(`Unexpected value: ${value}`);
+};

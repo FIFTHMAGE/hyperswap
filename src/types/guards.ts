@@ -1,81 +1,76 @@
 /**
- * Runtime type guards
- * @module types/guards
+ * Type guards for runtime type checking
  */
 
-import type { Address, TxHash } from './blockchain';
-import type { Token } from './token';
+import { Address, Hash, Token } from './blockchain.types';
 
-/**
- * Check if value is a valid Ethereum address
- */
-export function isAddress(value: any): value is Address {
+// Address type guard
+export function isAddress(value: unknown): value is Address {
   return typeof value === 'string' && /^0x[a-fA-F0-9]{40}$/.test(value);
 }
 
-/**
- * Check if value is a valid transaction hash
- */
-export function isTxHash(value: any): value is TxHash {
+// Hash type guard
+export function isHash(value: unknown): value is Hash {
   return typeof value === 'string' && /^0x[a-fA-F0-9]{64}$/.test(value);
 }
 
-/**
- * Check if value is a Token
- */
-export function isToken(value: any): value is Token {
+// Token type guard
+export function isToken(value: unknown): value is Token {
+  if (typeof value !== 'object' || value === null) return false;
+  const token = value as Token;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    isAddress(value.address) &&
-    typeof value.decimals === 'number' &&
-    typeof value.symbol === 'string' &&
-    typeof value.name === 'string'
+    isAddress(token.address) &&
+    typeof token.chainId === 'number' &&
+    typeof token.decimals === 'number' &&
+    typeof token.symbol === 'string' &&
+    typeof token.name === 'string'
   );
 }
 
-/**
- * Check if value is a valid numeric string
- */
-export function isNumericString(value: any): value is string {
-  return typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '';
+// String type guard
+export function isString(value: unknown): value is string {
+  return typeof value === 'string';
 }
 
-/**
- * Check if value is defined (not null or undefined)
- */
-export function isDefined<T>(value: T | null | undefined): value is T {
+// Number type guard
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number' && !isNaN(value);
+}
+
+// Array type guard
+export function isArray<T>(value: unknown, itemGuard?: (item: unknown) => item is T): value is T[] {
+  if (!Array.isArray(value)) return false;
+  if (itemGuard) {
+    return value.every(itemGuard);
+  }
+  return true;
+}
+
+// Object type guard
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Nullable type guard
+export function isNotNull<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-/**
- * Check if value is an error
- */
-export function isError(value: any): value is Error {
-  return value instanceof Error || (value && typeof value.message === 'string');
+// Error type guard
+export function isError(value: unknown): value is Error {
+  return value instanceof Error;
 }
 
-/**
- * Check if array has items
- */
-export function hasItems<T>(arr: T[] | null | undefined): arr is T[] {
-  return Array.isArray(arr) && arr.length > 0;
+// Promise type guard
+export function isPromise<T>(value: unknown): value is Promise<T> {
+  return value instanceof Promise || (
+    isObject(value) &&
+    'then' in value &&
+    typeof value.then === 'function'
+  );
 }
 
-/**
- * Check if string is not empty
- */
-export function isNonEmptyString(value: any): value is string {
-  return typeof value === 'string' && value.trim().length > 0;
+// Function type guard
+export function isFunction(value: unknown): value is (...args: Parameters<typeof value>) => ReturnType<typeof value> {
+  return typeof value === 'function';
 }
-
-/**
- * Check if object has specific property
- */
-export function hasProperty<K extends PropertyKey>(
-  obj: any,
-  key: K
-): obj is Record<K, unknown> {
-  return typeof obj === 'object' && obj !== null && key in obj;
-}
-
