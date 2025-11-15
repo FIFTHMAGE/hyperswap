@@ -1,45 +1,28 @@
 /**
- * Individual form field hook
+ * useFormField hook - Individual form field management
+ * @module hooks/form
  */
 
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback } from 'react';
 
-export interface UseFormFieldOptions<T> {
+interface UseFormFieldOptions<T> {
   initialValue: T;
-  validate?: (value: T) => string | null;
-  onChange?: (value: T) => void;
+  validate?: (value: T) => string | undefined;
 }
 
-export interface UseFormFieldReturn<T> {
-  value: T;
-  error: string | null;
-  touched: boolean;
-  setValue: (value: T) => void;
-  setError: (error: string | null) => void;
-  handleChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  handleBlur: () => void;
-  reset: () => void;
-}
-
-export function useFormField<T = string>({
-  initialValue,
-  validate,
-  onChange,
-}: UseFormFieldOptions<T>): UseFormFieldReturn<T> {
+export function useFormField<T>({ initialValue, validate }: UseFormFieldOptions<T>) {
   const [value, setValue] = useState<T>(initialValue);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string>();
   const [touched, setTouched] = useState(false);
 
   const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newValue = e.target.value as unknown as T;
+    (newValue: T) => {
       setValue(newValue);
-      onChange?.(newValue);
       if (touched && validate) {
         setError(validate(newValue));
       }
     },
-    [touched, validate, onChange]
+    [touched, validate]
   );
 
   const handleBlur = useCallback(() => {
@@ -51,7 +34,7 @@ export function useFormField<T = string>({
 
   const reset = useCallback(() => {
     setValue(initialValue);
-    setError(null);
+    setError(undefined);
     setTouched(false);
   }, [initialValue]);
 
@@ -59,11 +42,8 @@ export function useFormField<T = string>({
     value,
     error,
     touched,
-    setValue,
-    setError,
     handleChange,
     handleBlur,
     reset,
   };
 }
-

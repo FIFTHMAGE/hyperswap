@@ -1,107 +1,88 @@
 /**
- * Form management hook
+ * useForm hook - Form state management
+ * @module hooks/form
  */
 
-import { useState, useCallback, ChangeEvent } from 'react';
+import { useState, useCallback } from 'react';
 
-export interface UseFormOptions<T> {
-  initialValues: T;
-  validate?: (values: T) => Partial<Record<keyof T, string>>;
-  onSubmit: (values: T) => void | Promise<void>;
-}
-
-export interface UseFormReturn<T> {
+interface FormState<T> {
   values: T;
   errors: Partial<Record<keyof T, string>>;
   touched: Partial<Record<keyof T, boolean>>;
   isSubmitting: boolean;
-  handleChange: (field: keyof T) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  handleBlur: (field: keyof T) => () => void;
-  handleSubmit: (e?: React.FormEvent) => Promise<void>;
-  setFieldValue: (field: keyof T, value: T[keyof T]) => void;
-  setFieldError: (field: keyof T, error: string) => void;
-  resetForm: () => void;
+}
+
+interface UseFormOptions<T> {
+  initialValues: T;
+  onSubmit: (values: T) => Promise<void> | void;
+  validate?: (values: T) => Partial<Record<keyof T, string>>;
 }
 
 export function useForm<T extends Record<string, unknown>>({
   initialValues,
-  validate,
   onSubmit,
-}: UseFormOptions<T>): UseFormReturn<T> {
-  const [values, setValues] = useState<T>(initialValues);
-  const [errors, setErrors] = useState<Partial<Record<keyof T, string>>>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof T, boolean>>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  validate,
+}: UseFormOptions<T>) {
+  const [state, setState] = useState<FormState<T>>({
+    values: initialValues,
+    errors: {},
+    touched: {},
+    isSubmitting: false,
+  });
 
-  const handleChange = useCallback(
-    (field: keyof T) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setValues(prev => ({ ...prev, [field]: e.target.value }));
-    },
-    []
-  );
-
-  const handleBlur = useCallback(
-    (field: keyof T) => () => {
-      setTouched(prev => ({ ...prev, [field]: true }));
-      if (validate) {
-        const validationErrors = validate(values);
-        if (validationErrors[field]) {
-          setErrors(prev => ({ ...prev, [field]: validationErrors[field] }));
-        }
-      }
-    },
-    [validate, values]
-  );
-
-  const setFieldValue = useCallback((field: keyof T, value: T[keyof T]) => {
-    setValues(prev => ({ ...prev, [field]: value }));
+  const handleChange = useCallback((name: keyof T, value: unknown) => {
+    setState((prev) => ({
+      ...prev,
+      values: { ...prev.values, [name]: value },
+      touched: { ...prev.touched, [name]: true },
+    }));
   }, []);
 
-  const setFieldError = useCallback((field: keyof T, error: string) => {
-    setErrors(prev => ({ ...prev, [field]: error }));
+  const handleBlur = useCallback((name: keyof T) => {
+    setState((prev) => ({
+      ...prev,
+      touched: { ...prev.touched, [name]: true },
+    }));
   }, []);
 
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
 
-      // Validate all fields
-      if (validate) {
-        const validationErrors = validate(values);
-        setErrors(validationErrors);
-        if (Object.keys(validationErrors).length > 0) {
-          return;
+      const errors = validate ? validate(state.values) : {};
+
+      setState((prev) => ({ ...prev, errors }));
+
+      if (Object.keys(errors).length === 0) {
+        setState((prev) => ({ ...prev, isSubmitting: true }));
+
+        try {
+          await onSubmit(state.values);
+        } finally {
+          setState((prev) => ({ ...prev, isSubmitting: false }));
         }
       }
-
-      setIsSubmitting(true);
-      try {
-        await onSubmit(values);
-      } finally {
-        setIsSubmitting(false);
-      }
     },
-    [validate, values, onSubmit]
+    [state.values, validate, onSubmit]
   );
 
-  const resetForm = useCallback(() => {
-    setValues(initialValues);
-    setErrors({});
-    setTouched({});
-    setIsSubmitting(false);
+  const reset = useCallback(() => {
+    setState({
+      values: initialValues,
+      errors: {},
+      touched: {},
+      isSubmitting: false,
+    });
   }, [initialValues]);
 
   return {
-    values,
-    errors,
-    touched,
-    isSubmitting,
+    values: state.values,
+    errors: state.errors,
+    touched: state.touched,
+    isSubmitting: state.isSubmitting,
     handleChange,
     handleBlur,
     handleSubmit,
-    setFieldValue,
-    setFieldError,
-    resetForm,
+    reset,
   };
 }
-

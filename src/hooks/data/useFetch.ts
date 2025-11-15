@@ -1,92 +1,68 @@
 /**
- * Fetch data hook with caching and refetch
+ * useFetch hook - Data fetching with loading and error states
+ * @module hooks/data
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
-export interface UseFetchOptions {
+interface UseFetchOptions<T> {
+  url: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  body?: unknown;
   headers?: Record<string, string>;
-  body?: BodyInit;
-  cache?: boolean;
-  cacheTime?: number;
+  skip?: boolean;
+  onSuccess?: (data: T) => void;
+  onError?: (error: Error) => void;
 }
 
-export interface UseFetchReturn<T> {
-  data: T | null;
-  loading: boolean;
-  error: Error | null;
-  refetch: () => Promise<void>;
-}
-
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-
-export function useFetch<T>(
-  url: string,
-  options: UseFetchOptions = {}
-): UseFetchReturn<T> {
-  const { method = 'GET', headers, body, cache: useCache = true, cacheTime = 300000 } = options;
-
+export function useFetch<T>({
+  url,
+  method = 'GET',
+  body,
+  headers,
+  skip = false,
+  onSuccess,
+  onError,
+}: UseFetchOptions<T>) {
   const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    // Check cache
-    if (useCache && method === 'GET') {
-      const cached = cache.get(url);
-      if (cached && Date.now() - cached.timestamp < cacheTime) {
-        setData(cached.data as T);
-        setLoading(false);
-        return;
-      }
-    }
+  const execute = useCallback(async () => {
+    if (skip) return;
 
-    // Abort previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body,
-        signal: abortControllerRef.current.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: body ? JSON.stringify(body) : undefined,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const result = await response.json();
       setData(result);
-
-      // Cache result
-      if (useCache && method === 'GET') {
-        cache.set(url, { data: result, timestamp: Date.now() });
-      }
+      onSuccess?.(result);
     } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setError(err);
-      }
+      const error = err instanceof Error ? err : new Error('Fetch failed');
+      setError(error);
+      onError?.(error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }, [url, method, headers, body, useCache, cacheTime]);
+  }, [url, method, body, headers, skip, onSuccess, onError]);
 
   useEffect(() => {
-    fetchData();
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, [fetchData]);
+    execute();
+  }, [execute]);
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, error, isLoading, refetch: execute };
 }
-
