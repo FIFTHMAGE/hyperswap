@@ -1,9 +1,9 @@
 /**
- * Click outside detection hook
- * @module hooks/core/useOnClickOutside
+ * Click outside hook
+ * @module hooks/core
  */
 
-import { useEffect, RefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 
 export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T>,
@@ -12,11 +12,9 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       const el = ref?.current;
-
       if (!el || el.contains(event.target as Node)) {
         return;
       }
-
       handler(event);
     };
 
@@ -29,4 +27,3 @@ export function useOnClickOutside<T extends HTMLElement = HTMLElement>(
     };
   }, [ref, handler]);
 }
-
