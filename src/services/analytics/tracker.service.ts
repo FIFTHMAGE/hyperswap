@@ -10,7 +10,8 @@ export interface AnalyticsEvent {
   action: string;
   label?: string;
   value?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
+  timestamp?: number;
 }
 
 class AnalyticsTracker {
@@ -33,7 +34,7 @@ class AnalyticsTracker {
     this.events.push({
       ...event,
       timestamp: Date.now(),
-    } as any);
+    });
 
     // TODO: Send to analytics service (Google Analytics, Mixpanel, etc.)
   }
