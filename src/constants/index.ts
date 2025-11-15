@@ -1,11 +1,4 @@
-/**
- * Constants barrel export
- * @module constants
- */
-
-export * from './blockchain';
-export * from './tokens';
-export * from './dex';
+export * from './chains';
 export * from './api';
-export * from './ui';
-export * from './validation';
+export * from './wagmi';
+
