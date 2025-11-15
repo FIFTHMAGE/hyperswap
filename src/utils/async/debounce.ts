@@ -1,96 +1,50 @@
 /**
- * Debounce implementation
- * @module utils/async/debounce
+ * Debounce utility function
+ * @module utils/async
  */
 
-/**
- * Debounce a function - delays execution until after wait time has elapsed
- * since the last time it was invoked
- */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
-): {
-  (...args: Parameters<T>): void;
-  cancel: () => void;
-  flush: () => void;
-} {
-  let timeoutId: NodeJS.Timeout | null = null;
-  let lastArgs: Parameters<T> | null = null;
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-  const debounced = (...args: Parameters<T>) => {
-    lastArgs = args;
-    
+  return function debouncedFunction(...args: Parameters<T>) {
     if (timeoutId !== null) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
-      if (lastArgs !== null) {
-        func(...lastArgs);
-        lastArgs = null;
-      }
-      timeoutId = null;
+      func(...args);
     }, wait);
   };
-
-  debounced.cancel = () => {
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-      lastArgs = null;
-    }
-  };
-
-  debounced.flush = () => {
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      if (lastArgs !== null) {
-        func(...lastArgs);
-      }
-      timeoutId = null;
-      lastArgs = null;
-    }
-  };
-
-  return debounced;
 }
 
 /**
- * Debounce with promise support
+ * Debounce with leading edge execution
  */
-export function debounceAsync<T extends (...args: any[]) => Promise<any>>(
+export function debounceLeading<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number
-): (...args: Parameters<T>) => Promise<ReturnType<T>> {
-  let timeoutId: NodeJS.Timeout | null = null;
-  let resolveList: Array<(value: ReturnType<T>) => void> = [];
-  let rejectList: Array<(reason: any) => void> = [];
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let lastCallTime = 0;
 
-  return (...args: Parameters<T>): Promise<ReturnType<T>> => {
-    return new Promise((resolve, reject) => {
-      resolveList.push(resolve);
-      rejectList.push(reject);
+  return function debouncedFunction(...args: Parameters<T>) {
+    const now = Date.now();
 
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
 
-      timeoutId = setTimeout(async () => {
-        const currentResolves = resolveList;
-        const currentRejects = rejectList;
-        resolveList = [];
-        rejectList = [];
-        timeoutId = null;
-
-        try {
-          const result = await func(...args);
-          currentResolves.forEach(res => res(result));
-        } catch (error) {
-          currentRejects.forEach(rej => rej(error));
-        }
+    if (now - lastCallTime >= wait) {
+      func(...args);
+      lastCallTime = now;
+    } else {
+      timeoutId = setTimeout(() => {
+        func(...args);
+        lastCallTime = Date.now();
       }, wait);
-    });
+    }
   };
 }
-
