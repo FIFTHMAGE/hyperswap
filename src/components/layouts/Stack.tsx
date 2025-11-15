@@ -1,62 +1,58 @@
 /**
- * Stack layout component for vertical/horizontal stacking
+ * Stack layout component
+ * @module components/layouts
  */
 
-import React from 'react';
-import { BaseComponentProps } from '../shared/prop-types';
-import { cn } from '../shared/component-utils';
+'use client';
 
-export interface StackProps extends BaseComponentProps {
-  direction?: 'vertical' | 'horizontal';
-  spacing?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+import type { ReactNode } from 'react';
+
+interface StackProps {
+  children: ReactNode;
+  direction?: 'horizontal' | 'vertical';
+  spacing?: 2 | 4 | 6 | 8;
   align?: 'start' | 'center' | 'end' | 'stretch';
   justify?: 'start' | 'center' | 'end' | 'between' | 'around';
+  className?: string;
 }
 
-const spacingClasses = {
-  none: 'gap-0',
-  sm: 'gap-2',
-  md: 'gap-4',
-  lg: 'gap-6',
-  xl: 'gap-8',
-};
-
-const alignClasses = {
-  start: 'items-start',
-  center: 'items-center',
-  end: 'items-end',
-  stretch: 'items-stretch',
-};
-
-const justifyClasses = {
-  start: 'justify-start',
-  center: 'justify-center',
-  end: 'justify-end',
-  between: 'justify-between',
-  around: 'justify-around',
-};
-
-export const Stack: React.FC<StackProps> = ({
+export function Stack({
+  children,
   direction = 'vertical',
-  spacing = 'md',
+  spacing = 4,
   align = 'stretch',
   justify = 'start',
-  className,
-  children,
-}) => {
+  className = '',
+}: StackProps) {
+  const directionClass = direction === 'horizontal' ? 'flex-row' : 'flex-col';
+
+  const spacingClasses = {
+    2: direction === 'horizontal' ? 'gap-x-2' : 'gap-y-2',
+    4: direction === 'horizontal' ? 'gap-x-4' : 'gap-y-4',
+    6: direction === 'horizontal' ? 'gap-x-6' : 'gap-y-6',
+    8: direction === 'horizontal' ? 'gap-x-8' : 'gap-y-8',
+  };
+
+  const alignClasses = {
+    start: 'items-start',
+    center: 'items-center',
+    end: 'items-end',
+    stretch: 'items-stretch',
+  };
+
+  const justifyClasses = {
+    start: 'justify-start',
+    center: 'justify-center',
+    end: 'justify-end',
+    between: 'justify-between',
+    around: 'justify-around',
+  };
+
   return (
     <div
-      className={cn(
-        'flex',
-        direction === 'vertical' ? 'flex-col' : 'flex-row',
-        spacingClasses[spacing],
-        alignClasses[align],
-        justifyClasses[justify],
-        className
-      )}
+      className={`flex ${directionClass} ${spacingClasses[spacing]} ${alignClasses[align]} ${justifyClasses[justify]} ${className}`}
     >
       {children}
     </div>
   );
-};
-
+}

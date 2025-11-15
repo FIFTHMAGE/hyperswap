@@ -1,44 +1,30 @@
 /**
  * Container layout component
+ * @module components/layouts
  */
 
-import React from 'react';
-import { BaseComponentProps } from '../shared/prop-types';
-import { cn } from '../shared/component-utils';
+'use client';
 
-export interface ContainerProps extends BaseComponentProps {
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
-  centered?: boolean;
-  padding?: boolean;
+import type { ReactNode } from 'react';
+
+interface ContainerProps {
+  children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  className?: string;
 }
 
-const maxWidthClasses = {
-  sm: 'max-w-screen-sm',
-  md: 'max-w-screen-md',
-  lg: 'max-w-screen-lg',
-  xl: 'max-w-screen-xl',
-  '2xl': 'max-w-screen-2xl',
-  full: 'max-w-full',
-};
+export function Container({ children, size = 'lg', className = '' }: ContainerProps) {
+  const sizeClasses = {
+    sm: 'max-w-2xl',
+    md: 'max-w-4xl',
+    lg: 'max-w-6xl',
+    xl: 'max-w-7xl',
+    full: 'max-w-full',
+  };
 
-export const Container: React.FC<ContainerProps> = ({
-  maxWidth = 'xl',
-  centered = true,
-  padding = true,
-  className,
-  children,
-}) => {
   return (
-    <div
-      className={cn(
-        maxWidthClasses[maxWidth],
-        centered && 'mx-auto',
-        padding && 'px-4 sm:px-6 lg:px-8',
-        className
-      )}
-    >
+    <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${sizeClasses[size]} ${className}`}>
       {children}
     </div>
   );
-};
-
+}
