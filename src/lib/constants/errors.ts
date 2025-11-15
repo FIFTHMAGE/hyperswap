@@ -1,0 +1,68 @@
+/**
+ * Error constants
+ * @module lib/constants
+ */
+
+export const ERROR_CODES = {
+  // Network errors
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  TIMEOUT: 'TIMEOUT',
+  CONNECTION_FAILED: 'CONNECTION_FAILED',
+
+  // Validation errors
+  INVALID_INPUT: 'INVALID_INPUT',
+  INVALID_ADDRESS: 'INVALID_ADDRESS',
+  INVALID_AMOUNT: 'INVALID_AMOUNT',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+
+  // Auth errors
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+
+  // Blockchain errors
+  INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
+  INSUFFICIENT_ALLOWANCE: 'INSUFFICIENT_ALLOWANCE',
+  TRANSACTION_FAILED: 'TRANSACTION_FAILED',
+  CONTRACT_ERROR: 'CONTRACT_ERROR',
+
+  // API errors
+  API_ERROR: 'API_ERROR',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+  SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+
+  // General errors
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
+  NOT_FOUND: 'NOT_FOUND',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export const ERROR_MESSAGES = {
+  [ERROR_CODES.NETWORK_ERROR]: 'Network error occurred',
+  [ERROR_CODES.TIMEOUT]: 'Request timeout',
+  [ERROR_CODES.CONNECTION_FAILED]: 'Connection failed',
+
+  [ERROR_CODES.INVALID_INPUT]: 'Invalid input',
+  [ERROR_CODES.INVALID_ADDRESS]: 'Invalid address',
+  [ERROR_CODES.INVALID_AMOUNT]: 'Invalid amount',
+  [ERROR_CODES.INVALID_TOKEN]: 'Invalid token',
+
+  [ERROR_CODES.UNAUTHORIZED]: 'Unauthorized',
+  [ERROR_CODES.FORBIDDEN]: 'Forbidden',
+  [ERROR_CODES.TOKEN_EXPIRED]: 'Token expired',
+
+  [ERROR_CODES.INSUFFICIENT_BALANCE]: 'Insufficient balance',
+  [ERROR_CODES.INSUFFICIENT_ALLOWANCE]: 'Insufficient allowance',
+  [ERROR_CODES.TRANSACTION_FAILED]: 'Transaction failed',
+  [ERROR_CODES.CONTRACT_ERROR]: 'Contract error',
+
+  [ERROR_CODES.API_ERROR]: 'API error',
+  [ERROR_CODES.RATE_LIMIT_EXCEEDED]: 'Rate limit exceeded',
+  [ERROR_CODES.SERVICE_UNAVAILABLE]: 'Service unavailable',
+
+  [ERROR_CODES.UNKNOWN_ERROR]: 'Unknown error',
+  [ERROR_CODES.NOT_FOUND]: 'Not found',
+  [ERROR_CODES.INTERNAL_ERROR]: 'Internal error',
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
