@@ -1,6 +1,6 @@
 'use client';
 
-import { RealtimeDashboard } from '@/components/custom/RealtimeDashboard';
+import { RealtimeDashboard } from '@/components/features/RealtimeDashboard';
 
 export default function RealtimePage() {
   return <RealtimeDashboard />;
