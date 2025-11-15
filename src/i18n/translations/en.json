@@ -1,0 +1,41 @@
+{
+  "common": {
+    "connect": "Connect Wallet",
+    "disconnect": "Disconnect",
+    "loading": "Loading...",
+    "error": "Error",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "home": {
+    "title": "Your Year On-Chain",
+    "subtitle": "Discover your crypto journey with beautiful, shareable insights",
+    "getStarted": "Get Your Wrapped",
+    "connectPrompt": "Connect your wallet to get started"
+  },
+  "wrapped": {
+    "loading": "Analyzing your wallet...",
+    "error": "Failed to load your wrapped stats",
+    "share": "Share",
+    "download": "Download",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "stats": {
+    "transactions": "Transactions",
+    "gasSpent": "Gas Spent",
+    "chains": "Chains",
+    "tokens": "Tokens",
+    "nfts": "NFTs",
+    "defi": "DeFi Protocols"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "analytics": "Analytics",
+    "users": "Users",
+    "chains": "Chains"
+  }
+}
+
