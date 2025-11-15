@@ -1,76 +1,57 @@
 /**
- * Liquidity pool card component
- * @module components/liquidity/PoolCard
+ * Pool card component for displaying liquidity pool information
+ * @module components/liquidity
  */
 
 'use client';
 
-import { styled } from 'nativewind';
-import { Card, Badge } from '../ui';
-import { formatUSD, formatNumber } from '@/utils/format/currency';
-import { formatPercentage } from '@/utils/format/percentage';
-import type { LiquidityPool } from '@/types/liquidity/pool';
-
 interface PoolCardProps {
-  pool: LiquidityPool;
-  onSelect?: (pool: LiquidityPool) => void;
+  poolName: string;
+  token0Symbol: string;
+  token1Symbol: string;
+  tvl: string;
+  apr: number;
+  volume24h: string;
+  onClick?: () => void;
+  className?: string;
 }
 
-const PoolCard: React.FC<PoolCardProps> = ({ pool, onSelect }) => {
+export function PoolCard({
+  poolName,
+  token0Symbol,
+  token1Symbol,
+  tvl,
+  apr,
+  volume24h,
+  onClick,
+  className = '',
+}: PoolCardProps) {
   return (
-    <Card
-      padding="md"
-      className="hover:shadow-lg transition-shadow cursor-pointer"
-      onClick={() => onSelect?.(pool)}
+    <button
+      onClick={onClick}
+      className={`w-full p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors text-left ${className}`}
     >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex -space-x-2">
-            {pool.token0.logoURI && (
-              <img
-                src={pool.token0.logoURI}
-                alt={pool.token0.symbol}
-                className="w-10 h-10 rounded-full border-2 border-white"
-              />
-            )}
-            {pool.token1.logoURI && (
-              <img
-                src={pool.token1.logoURI}
-                alt={pool.token1.symbol}
-                className="w-10 h-10 rounded-full border-2 border-white"
-              />
-            )}
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">
-              {pool.token0.symbol}/{pool.token1.symbol}
-            </h3>
-            <p className="text-sm text-gray-600">{pool.protocol}</p>
-          </div>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="font-semibold text-lg text-gray-900 dark:text-white">{poolName}</div>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {token0Symbol}/{token1Symbol}
+          </span>
         </div>
-
-        <Badge variant="info">{pool.feeTier}%</Badge>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <p className="text-sm text-gray-600">TVL</p>
-          <p className="text-lg font-semibold">{formatUSD(pool.tvl)}</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">Volume (24h)</p>
-          <p className="text-lg font-semibold">{formatUSD(pool.volume24h)}</p>
-        </div>
-        <div>
-          <p className="text-sm text-gray-600">APR</p>
-          <p className="text-lg font-semibold text-green-600">
-            {formatPercentage(pool.apr)}
-          </p>
+        <div className="text-green-600 dark:text-green-400 font-semibold">
+          {apr.toFixed(2)}% APR
         </div>
       </div>
-    </Card>
+      <div className="grid grid-cols-2 gap-4 text-sm">
+        <div>
+          <div className="text-gray-500 dark:text-gray-400">TVL</div>
+          <div className="font-medium text-gray-900 dark:text-white">${tvl}</div>
+        </div>
+        <div>
+          <div className="text-gray-500 dark:text-gray-400">24h Volume</div>
+          <div className="font-medium text-gray-900 dark:text-white">${volume24h}</div>
+        </div>
+      </div>
+    </button>
   );
-};
-
-export default styled(PoolCard);
-
+}
