@@ -1,56 +1,47 @@
 /**
- * Radio component
+ * Radio button component
  * @module components/ui
  */
 
 'use client';
 
-interface RadioOption {
-  value: string;
-  label: string;
-  description?: string;
-  disabled?: boolean;
-}
+import type { ChangeEvent } from 'react';
 
-interface RadioGroupProps {
-  options: RadioOption[];
-  value: string;
-  onChange: (value: string) => void;
+interface RadioProps {
   name: string;
+  value: string;
+  checked?: boolean;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  label?: string;
+  disabled?: boolean;
   className?: string;
 }
 
-export function RadioGroup({ options, value, onChange, name, className = '' }: RadioGroupProps) {
+export function Radio({
+  name,
+  value,
+  checked = false,
+  onChange,
+  label,
+  disabled = false,
+  className = '',
+}: RadioProps) {
   return (
-    <div className={`space-y-2 ${className}`}>
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className={`
-            flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700
-            ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-blue-500'}
-            ${value === option.value ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' : ''}
-          `}
-        >
-          <input
-            type="radio"
-            name={name}
-            value={option.value}
-            checked={value === option.value}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={option.disabled}
-            className="mt-0.5"
-          />
-          <div className="flex-1">
-            <div className="font-medium text-gray-900 dark:text-white">{option.label}</div>
-            {option.description && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {option.description}
-              </div>
-            )}
-          </div>
-        </label>
-      ))}
-    </div>
+    <label
+      className={`inline-flex items-center cursor-pointer ${
+        disabled ? 'opacity-50 cursor-not-allowed' : ''
+      } ${className}`}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+      />
+      {label && <span className="ml-2 text-sm text-gray-900 dark:text-white">{label}</span>}
+    </label>
   );
 }
