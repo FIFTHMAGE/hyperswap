@@ -34,3 +34,16 @@ export { default as Toast } from './Toast/Toast';
 export { default as Spinner } from './Loading/Spinner';
 export { default as Skeleton } from './Loading/Skeleton';
 
+// Additional UI components
+export { Checkbox } from './Checkbox';
+export { Container } from './Container';
+export { Divider } from './Divider';
+export { ErrorBoundary } from './ErrorBoundary';
+export { InstallPromptBanner } from './InstallPromptBanner';
+export { LanguageSwitcher } from './LanguageSwitcher';
+export { LoadingSpinner } from './LoadingSpinner';
+export { ProgressBar } from './ProgressBar';
+export { Select } from './Select';
+export { Switch } from './Switch';
+export { Tabs } from './Tabs';
+export { ThemeToggle } from './ThemeToggle';
