@@ -1,0 +1,13 @@
+# Component Organization
+
+All components are now consolidated in `src/components/` with the following structure:
+
+- `features/` - Feature-specific components (38 files)
+- `ui/` - Reusable UI components (31 files)
+- `mobile/` - Mobile-specific components (16 files)
+- `wrapped/` - Wrapped/analytics components (57 files)
+- `dashboard/` - Dashboard components
+- `wallet/` - Wallet integration components
+- `swap/` - Swap-related domain components
+- `liquidity/` - Liquidity pool components
+- `portfolio/` - Portfolio management components
