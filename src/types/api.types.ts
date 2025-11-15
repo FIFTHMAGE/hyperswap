@@ -47,4 +47,3 @@ export interface ApiRequestConfig {
 export type ApiEndpoint = string;
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 export type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
-

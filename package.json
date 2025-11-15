@@ -21,10 +21,10 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
-      "prettier --write"
+      "npx prettier --write"
     ],
     "*.{js,jsx,json,md}": [
-      "prettier --write"
+      "npx prettier --write"
     ]
   },
   "dependencies": {

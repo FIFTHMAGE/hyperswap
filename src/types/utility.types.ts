@@ -48,7 +48,7 @@ export type Awaited<T> = T extends Promise<infer U> ? U : T;
 export type ArrayElement<T> = T extends (infer U)[] ? U : never;
 
 // Function return type async
-export type AsyncReturnType<T extends (...args: Parameters<T>) => ReturnType<T>> = 
+export type AsyncReturnType<T extends (...args: Parameters<T>) => ReturnType<T>> =
   ReturnType<T> extends Promise<infer U> ? U : ReturnType<T>;
 
 // Value of object
@@ -81,9 +81,7 @@ export type Nullable<T> = T | null;
 export type Maybe<T> = T | null | undefined;
 
 // Result type for operations
-export type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 // Paginated result
 export type PaginatedResult<T> = {
@@ -96,4 +94,3 @@ export type PaginatedResult<T> = {
 
 // Brand types for type safety
 export type Brand<K, T> = K & { __brand: T };
-

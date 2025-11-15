@@ -133,4 +133,3 @@ export interface ChartData {
 }
 
 export type ChartTimeframe = '1H' | '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL';
-

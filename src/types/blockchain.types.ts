@@ -86,4 +86,3 @@ export interface Block {
   gasUsed: string;
   gasLimit: string;
 }
-
