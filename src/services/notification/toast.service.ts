@@ -1,70 +1,71 @@
 /**
  * Toast notification service
- * @module services/notification/toast
+ * @module services/notification
  */
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = 'success' | 'error' | 'warning' | 'info';
 
-export interface Toast {
+interface Toast {
   id: string;
   type: ToastType;
   message: string;
-  description?: string;
   duration?: number;
 }
 
-type ToastListener = (toast: Toast) => void;
-
 class ToastService {
-  private listeners: ToastListener[] = [];
-  private toastIdCounter = 0;
+  private toasts: Toast[] = [];
+  private listeners: Array<(toasts: Toast[]) => void> = [];
 
-  /**
-   * Subscribe to toast notifications
-   */
-  subscribe(listener: ToastListener): () => void {
-    this.listeners.push(listener);
-    
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
-  }
+  show(type: ToastType, message: string, duration: number = 5000): string {
+    const id = Math.random().toString(36).substr(2, 9);
+    const toast: Toast = { id, type, message, duration };
 
-  /**
-   * Show a toast
-   */
-  private show(type: ToastType, message: string, description?: string, duration?: number): string {
-    const id = `toast-${++this.toastIdCounter}`;
-    
-    const toast: Toast = {
-      id,
-      type,
-      message,
-      description,
-      duration: duration || 5000,
-    };
+    this.toasts.push(toast);
+    this.notify();
 
-    this.listeners.forEach(listener => listener(toast));
-    
+    if (duration > 0) {
+      setTimeout(() => this.dismiss(id), duration);
+    }
+
     return id;
   }
 
-  success(message: string, description?: string, duration?: number): string {
-    return this.show('success', message, description, duration);
+  success(message: string, duration?: number): string {
+    return this.show('success', message, duration);
   }
 
-  error(message: string, description?: string, duration?: number): string {
-    return this.show('error', message, description, duration);
+  error(message: string, duration?: number): string {
+    return this.show('error', message, duration);
   }
 
-  warning(message: string, description?: string, duration?: number): string {
-    return this.show('warning', message, description, duration);
+  warning(message: string, duration?: number): string {
+    return this.show('warning', message, duration);
   }
 
-  info(message: string, description?: string, duration?: number): string {
-    return this.show('info', message, description, duration);
+  info(message: string, duration?: number): string {
+    return this.show('info', message, duration);
+  }
+
+  dismiss(id: string): void {
+    this.toasts = this.toasts.filter((toast) => toast.id !== id);
+    this.notify();
+  }
+
+  dismissAll(): void {
+    this.toasts = [];
+    this.notify();
+  }
+
+  subscribe(listener: (toasts: Toast[]) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notify(): void {
+    this.listeners.forEach((listener) => listener([...this.toasts]));
   }
 }
 
 export const toastService = new ToastService();
-
