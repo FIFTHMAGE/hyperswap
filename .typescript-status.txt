@@ -1,0 +1,4 @@
+# TypeScript Configuration
+strict: true
+noImplicitAny: true
+All types properly defined
