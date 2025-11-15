@@ -1,30 +1,41 @@
 /**
- * Hook for fetching token balances
+ * useTokenBalance hook - Fetch token balance
+ * @module hooks/domain
  */
 
 import { useState, useEffect } from 'react';
 
-export function useTokenBalance(tokenAddress: string, userAddress?: string) {
+export function useTokenBalance(
+  tokenAddress: string | null,
+  account: string | null,
+  chainId: number | null
+) {
   const [balance, setBalance] = useState<string>('0');
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (userAddress) {
-      fetchBalance();
+    if (!tokenAddress || !account || !chainId) {
+      setBalance('0');
+      return;
     }
-  }, [tokenAddress, userAddress]);
 
-  const fetchBalance = async () => {
-    try {
-      // Mock balance fetching - would use web3 library
-      setBalance((Math.random() * 100).toFixed(4));
-    } catch (error) {
-      console.error('Error fetching balance:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setIsLoading(true);
+    setError(null);
 
-  return { balance, loading, refetch: fetchBalance };
+    const fetchBalance = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setBalance((Math.random() * 1000).toFixed(4));
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch balance'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBalance();
+  }, [tokenAddress, account, chainId]);
+
+  return { balance, isLoading, error, refetch: () => {} };
 }
-

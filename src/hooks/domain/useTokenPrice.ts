@@ -1,47 +1,38 @@
 /**
- * Token price fetching hook
- * @module hooks/domain/useTokenPrice
+ * useTokenPrice hook - Fetch token price
+ * @module hooks/domain
  */
 
 import { useState, useEffect } from 'react';
-import { useInterval } from '../core/useInterval';
-import { getTokenPrice } from '@/services/api/token-price.service';
-import type { ChainId } from '@/types/blockchain';
 
-export function useTokenPrice(
-  chainId?: ChainId,
-  tokenAddress?: string,
-  refreshInterval: number | null = 30000 // 30 seconds
-) {
+export function useTokenPrice(tokenAddress: string | null, chainId: number | null) {
   const [price, setPrice] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPrice = async () => {
-    if (!chainId || !tokenAddress) {
+  useEffect(() => {
+    if (!tokenAddress || !chainId) {
       setPrice(null);
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
-    try {
-      const result = await getTokenPrice(chainId, tokenAddress);
-      setPrice(result);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Mock implementation - replace with actual API call
+    const fetchPrice = async () => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        setPrice(Math.random() * 1000);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch price'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
     fetchPrice();
-  }, [chainId, tokenAddress]);
+  }, [tokenAddress, chainId]);
 
-  useInterval(fetchPrice, refreshInterval);
-
-  return { price, loading, error, refetch: fetchPrice };
+  return { price, isLoading, error };
 }
-

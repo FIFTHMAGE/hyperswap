@@ -1,70 +1,73 @@
 /**
- * Swap quote service for fetching real-time quotes
- * @module services/swap/quote
+ * Swap quote service
+ * @module services/swap
  */
 
-import type { SwapQuote } from '@/types/swap';
-import type { ChainId } from '@/types/blockchain';
-import { calculatePriceImpact } from './aggregator.service';
+import type { SwapQuote } from '@/types/domain.types';
 
-/**
- * Get swap quote
- */
-export async function getSwapQuote(params: {
-  chainId: ChainId;
-  fromToken: string;
-  toToken: string;
-  amount: string;
-  slippage: number;
-}): Promise<SwapQuote> {
-  // TODO: Implement actual quote fetching from DEX aggregators
-  return {
-    fromToken: params.fromToken,
-    toToken: params.toToken,
-    fromAmount: params.amount,
-    toAmount: '0',
-    minimumReceived: '0',
-    priceImpact: 0,
-    route: [params.fromToken, params.toToken],
-    estimatedGas: '150000',
-    gasCostUSD: 0,
-    slippage: params.slippage,
-    validUntil: Date.now() + 30000, // 30 seconds
-  } as any;
+class QuoteService {
+  /**
+   * Get best quote for swap
+   */
+  async getQuote(params: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    chainId: number;
+    slippage?: number;
+  }): Promise<SwapQuote> {
+    // Mock implementation
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return {
+      fromToken: params.fromToken,
+      toToken: params.toToken,
+      fromAmount: params.amount,
+      toAmount: (parseFloat(params.amount) * 0.95).toString(),
+      priceImpact: 0.5,
+      slippage: params.slippage || 0.5,
+      estimatedGas: '150000',
+      route: [],
+      timestamp: Date.now(),
+    };
+  }
+
+  /**
+   * Get multiple quotes from different DEXs
+   */
+  async getMultipleQuotes(params: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    chainId: number;
+  }): Promise<SwapQuote[]> {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    return [
+      {
+        fromToken: params.fromToken,
+        toToken: params.toToken,
+        fromAmount: params.amount,
+        toAmount: (parseFloat(params.amount) * 0.96).toString(),
+        priceImpact: 0.4,
+        slippage: 0.5,
+        estimatedGas: '140000',
+        route: [],
+        timestamp: Date.now(),
+      },
+      {
+        fromToken: params.fromToken,
+        toToken: params.toToken,
+        fromAmount: params.amount,
+        toAmount: (parseFloat(params.amount) * 0.94).toString(),
+        priceImpact: 0.6,
+        slippage: 0.5,
+        estimatedGas: '160000',
+        route: [],
+        timestamp: Date.now(),
+      },
+    ];
+  }
 }
 
-/**
- * Get multiple quotes for comparison
- */
-export async function getComparisonQuotes(params: {
-  chainId: ChainId;
-  fromToken: string;
-  toToken: string;
-  amount: string;
-}): Promise<SwapQuote[]> {
-  // Get quotes from different sources
-  const quotes: SwapQuote[] = [];
-  
-  // TODO: Fetch from multiple DEX aggregators
-  
-  return quotes;
-}
-
-/**
- * Refresh quote
- */
-export async function refreshQuote(
-  existingQuote: SwapQuote
-): Promise<SwapQuote> {
-  // Re-fetch quote with same parameters
-  return existingQuote;
-}
-
-/**
- * Validate quote is still valid
- */
-export function isQuoteValid(quote: SwapQuote): boolean {
-  if (!quote.validUntil) return true;
-  return Date.now() < quote.validUntil;
-}
-
+export const quoteService = new QuoteService();

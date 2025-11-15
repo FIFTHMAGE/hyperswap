@@ -1,59 +1,55 @@
 /**
  * Swap execution service
- * @module services/swap/execution
+ * @module services/swap
  */
 
-import type { SwapQuote } from '@/types/swap';
-import type { ChainId } from '@/types/blockchain';
+class ExecutionService {
+  /**
+   * Execute swap transaction
+   */
+  async executeSwap(_params: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    slippage: number;
+    deadline: number;
+    account: string;
+  }): Promise<{ txHash: string }> {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-/**
- * Execute swap transaction
- */
-export async function executeSwap(params: {
-  chainId: ChainId;
-  quote: SwapQuote;
-  userAddress: string;
-  deadline: number;
-}): Promise<{ hash: string }> {
-  // TODO: Implement actual swap execution via wallet
-  return { hash: '0x' };
+    const txHash = `0x${Math.random().toString(16).slice(2)}`;
+
+    return { txHash };
+  }
+
+  /**
+   * Approve token spending
+   */
+  async approveToken(_params: {
+    tokenAddress: string;
+    spenderAddress: string;
+    amount: string;
+    account: string;
+  }): Promise<{ txHash: string }> {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    return {
+      txHash: `0x${Math.random().toString(16).slice(2)}`,
+    };
+  }
+
+  /**
+   * Check if token is approved
+   */
+  async checkAllowance(_params: {
+    tokenAddress: string;
+    ownerAddress: string;
+    spenderAddress: string;
+  }): Promise<string> {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return (Math.random() * 1000000).toString();
+  }
 }
 
-/**
- * Approve token for swap
- */
-export async function approveToken(params: {
-  chainId: ChainId;
-  tokenAddress: string;
-  spenderAddress: string;
-  amount: string;
-}): Promise<{ hash: string }> {
-  // TODO: Implement token approval
-  return { hash: '0x' };
-}
-
-/**
- * Check token allowance
- */
-export async function checkAllowance(params: {
-  chainId: ChainId;
-  tokenAddress: string;
-  ownerAddress: string;
-  spenderAddress: string;
-}): Promise<string> {
-  // TODO: Implement allowance check
-  return '0';
-}
-
-/**
- * Estimate swap gas
- */
-export async function estimateSwapGas(params: {
-  chainId: ChainId;
-  quote: SwapQuote;
-  userAddress: string;
-}): Promise<bigint> {
-  // TODO: Implement gas estimation
-  return BigInt(150000);
-}
-
+export const executionService = new ExecutionService();

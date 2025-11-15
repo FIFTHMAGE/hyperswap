@@ -1,58 +1,60 @@
 /**
- * Swap quote fetching hook
- * @module hooks/domain/useSwapQuote
+ * useSwapQuote hook - Get swap quote
+ * @module hooks/domain
  */
 
 import { useState, useEffect } from 'react';
-import { useDebounce } from '../core/useDebounce';
-import { getSwapQuote } from '@/services/swap/quote.service';
-import type { SwapQuote } from '@/types/swap';
-import type { ChainId } from '@/types/blockchain';
 
-export function useSwapQuote(params: {
-  chainId?: ChainId;
-  fromToken?: string;
-  toToken?: string;
-  amount?: string;
-  slippage?: number;
-  enabled?: boolean;
-}) {
+import type { SwapQuote } from '@/types/domain.types';
+
+interface UseSwapQuoteParams {
+  fromToken: string | null;
+  toToken: string | null;
+  amount: string;
+  chainId: number | null;
+}
+
+export function useSwapQuote({ fromToken, toToken, amount, chainId }: UseSwapQuoteParams) {
   const [quote, setQuote] = useState<SwapQuote | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const debouncedAmount = useDebounce(params.amount, 500);
-
   useEffect(() => {
-    if (!params.enabled || !params.chainId || !params.fromToken || !params.toToken || !debouncedAmount) {
+    if (!fromToken || !toToken || !amount || !chainId || parseFloat(amount) === 0) {
       setQuote(null);
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     const fetchQuote = async () => {
-      setLoading(true);
-      setError(null);
-
       try {
-        const result = await getSwapQuote({
-          chainId: params.chainId!,
-          fromToken: params.fromToken!,
-          toToken: params.toToken!,
-          amount: debouncedAmount,
-          slippage: params.slippage || 0.005,
-        });
+        await new Promise((resolve) => setTimeout(resolve, 800));
 
-        setQuote(result);
+        // Mock quote
+        const mockQuote: SwapQuote = {
+          fromToken,
+          toToken,
+          fromAmount: amount,
+          toAmount: (parseFloat(amount) * 0.95).toString(),
+          priceImpact: 0.5,
+          slippage: 0.5,
+          estimatedGas: '150000',
+          route: [],
+          timestamp: Date.now(),
+        };
+
+        setQuote(mockQuote);
       } catch (err) {
-        setError(err as Error);
+        setError(err instanceof Error ? err : new Error('Failed to fetch quote'));
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     fetchQuote();
-  }, [params.chainId, params.fromToken, params.toToken, debouncedAmount, params.slippage, params.enabled]);
+  }, [fromToken, toToken, amount, chainId]);
 
-  return { quote, loading, error };
+  return { quote, isLoading, error };
 }
-
