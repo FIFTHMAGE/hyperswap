@@ -1,16 +1,28 @@
 /**
- * Components barrel export
- * @module components
+ * Main components barrel export
+ * Organized by feature area
  */
 
 // UI Components
 export * from './ui';
 
-// Swap Components
+// Feature Components
+export * from './features';
+
+// Dashboard Components
+export * from './dashboard';
+
+// Mobile Components
+export * from './mobile';
+
+// Wallet Components
+export * from './wallet';
+
+// Wrapped Components
+export * from './wrapped';
+
+// Domain Components
 export * from './swap';
-
-// Liquidity Components
 export * from './liquidity';
-
-// Portfolio Components
 export * from './portfolio';
+export * from './common';
