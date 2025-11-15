@@ -1,11 +1,11 @@
 /**
- * useInterval hook - Declarative interval management
+ * useTimeout hook - Declarative timeout management
  * @module hooks/core
  */
 
 import { useEffect, useRef } from 'react';
 
-export function useInterval(callback: () => void, delay: number | null) {
+export function useTimeout(callback: () => void, delay: number | null) {
   const savedCallback = useRef(callback);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export function useInterval(callback: () => void, delay: number | null) {
   useEffect(() => {
     if (delay === null) return;
 
-    const id = setInterval(() => savedCallback.current(), delay);
-    return () => clearInterval(id);
+    const id = setTimeout(() => savedCallback.current(), delay);
+    return () => clearTimeout(id);
   }, [delay]);
 }

@@ -1,46 +1,31 @@
 /**
- * Clipboard hook for copy functionality
+ * useClipboard hook - Clipboard operations
+ * @module hooks/ui
  */
 
 import { useState, useCallback } from 'react';
 
-export interface UseClipboardReturn {
-  value: string | null;
-  copy: (text: string) => Promise<boolean>;
-  copied: boolean;
-  reset: () => void;
-}
-
-export function useClipboard(timeout: number = 2000): UseClipboardReturn {
-  const [value, setValue] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+export function useClipboard(timeout = 2000) {
+  const [isCopied, setIsCopied] = useState(false);
 
   const copy = useCallback(
-    async (text: string): Promise<boolean> => {
-      if (!navigator?.clipboard) {
-        console.warn('Clipboard API not available');
-        return false;
-      }
-
+    async (text: string) => {
       try {
         await navigator.clipboard.writeText(text);
-        setValue(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), timeout);
+        setIsCopied(true);
+
+        setTimeout(() => {
+          setIsCopied(false);
+        }, timeout);
+
         return true;
-      } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+      } catch {
+        setIsCopied(false);
         return false;
       }
     },
     [timeout]
   );
 
-  const reset = useCallback(() => {
-    setValue(null);
-    setCopied(false);
-  }, []);
-
-  return { value, copy, copied, reset };
+  return { isCopied, copy };
 }
-
