@@ -1,59 +1,35 @@
-/**
- * Transactions summary card
- * @module components/wrapped/cards/TransactionsCard
- */
-
 'use client';
 
+import { StoryCard } from '../StoryCard';
 import { motion } from 'framer-motion';
-import { styled } from 'nativewind';
-import { formatNumber } from '@/utils/format/number';
 
 interface TransactionsCardProps {
   totalTransactions: number;
-  successRate: number;
-  mostActiveMonth: string;
 }
 
-const TransactionsCard: React.FC<TransactionsCardProps> = ({
-  totalTransactions,
-  successRate,
-  mostActiveMonth,
-}) => {
+export function TransactionsCard({ totalTransactions }: TransactionsCardProps) {
   return (
-    <div className="text-center">
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.5, type: 'spring' }}
-        className="mb-6"
-      >
-        <div className="text-8xl font-bold">
-          {formatNumber(totalTransactions)}
-        </div>
-        <p className="text-2xl mt-2 opacity-90">Transactions</p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="space-y-4"
-      >
-        <div className="flex justify-center items-center gap-3">
-          <div className="text-4xl">✅</div>
-          <div className="text-3xl font-semibold">
-            {successRate.toFixed(1)}% Success Rate
-          </div>
-        </div>
-
-        <div className="text-xl opacity-80">
-          Most active in <span className="font-bold">{mostActiveMonth}</span>
-        </div>
-      </motion.div>
-    </div>
+    <StoryCard gradient="from-blue-900 to-purple-900">
+      <div className="text-center space-y-8">
+        <h2 className="text-4xl font-bold text-white">
+          You made
+        </h2>
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.3, type: 'spring', stiffness: 200 }}
+          className="text-8xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
+        >
+          {totalTransactions.toLocaleString()}
+        </motion.div>
+        <h3 className="text-4xl font-bold text-white">
+          transactions
+        </h3>
+        <p className="text-xl text-white/70">
+          That&apos;s {Math.round(totalTransactions / 12)} per month!
+        </p>
+      </div>
+    </StoryCard>
   );
-};
-
-export default styled(TransactionsCard);
+}
 

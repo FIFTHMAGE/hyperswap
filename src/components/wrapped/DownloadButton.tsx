@@ -1,39 +1,37 @@
-/**
- * Download wrapped summary button
- * @module components/wrapped/DownloadButton
- */
-
 'use client';
 
-import { styled } from 'nativewind';
-import { Button } from '../ui';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { PDFExporter } from '@/lib/utils/pdf-export';
 
-interface DownloadButtonProps {
-  onDownload: () => Promise<void>;
+interface Props {
+  data: any;
 }
 
-const DownloadButton: React.FC<DownloadButtonProps> = ({ onDownload }) => {
+export function DownloadButton({ data }: Props) {
+  const [downloading, setDownloading] = useState(false);
+
   const handleDownload = async () => {
+    setDownloading(true);
     try {
-      await onDownload();
+      await PDFExporter.exportToPDF(data);
     } catch (error) {
       console.error('Download failed:', error);
+    } finally {
+      setDownloading(false);
     }
   };
 
   return (
-    <Button
+    <motion.button
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       onClick={handleDownload}
-      variant="outline"
-      className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+      disabled={downloading}
+      className="fixed top-8 right-8 px-6 py-3 bg-white/20 backdrop-blur-lg rounded-full text-white font-semibold hover:bg-white/30 transition-colors disabled:opacity-50 z-50"
     >
-      <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-      </svg>
-      Download Summary
-    </Button>
+      {downloading ? '⏳ Downloading...' : '📥 Download PDF'}
+    </motion.button>
   );
-};
-
-export default styled(DownloadButton);
+}
 

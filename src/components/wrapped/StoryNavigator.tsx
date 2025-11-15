@@ -1,117 +1,62 @@
-/**
- * Story navigator with keyboard navigation
- * @module components/wrapped/StoryNavigator
- */
-
 'use client';
 
-import { useEffect, useCallback } from 'react';
-import { styled } from 'nativewind';
+import { motion } from 'framer-motion';
 
 interface StoryNavigatorProps {
   currentIndex: number;
-  totalStories: number;
+  total: number;
   onNext: () => void;
   onPrevious: () => void;
-  onClose: () => void;
 }
 
-const StoryNavigator: React.FC<StoryNavigatorProps> = ({
+export function StoryNavigator({
   currentIndex,
-  totalStories,
+  total,
   onNext,
   onPrevious,
-  onClose,
-}) => {
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      switch (event.key) {
-        case 'ArrowRight':
-        case 'ArrowDown':
-          onNext();
-          break;
-        case 'ArrowLeft':
-        case 'ArrowUp':
-          onPrevious();
-          break;
-        case 'Escape':
-          onClose();
-          break;
-        case ' ':
-          event.preventDefault();
-          onNext();
-          break;
-      }
-    },
-    [onNext, onPrevious, onClose]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
+}: StoryNavigatorProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 p-4">
-      {/* Progress indicators */}
+      {/* Progress bars */}
       <div className="flex gap-1 mb-4">
-        {Array.from({ length: totalStories }).map((_, index) => (
+        {Array.from({ length: total }).map((_, index) => (
           <div
             key={index}
-            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-              index < currentIndex
-                ? 'bg-white'
-                : index === currentIndex
-                ? 'bg-white/50'
-                : 'bg-white/20'
-            }`}
-          />
+            className="flex-1 h-1 bg-white/20 rounded-full overflow-hidden"
+          >
+            {index <= currentIndex && (
+              <motion.div
+                initial={{ width: '0%' }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 0.3 }}
+                className="h-full bg-white"
+              />
+            )}
+          </div>
         ))}
       </div>
 
-      {/* Navigation controls */}
+      {/* Navigation */}
       <div className="flex justify-between items-center">
         <button
           onClick={onPrevious}
           disabled={currentIndex === 0}
-          className="p-2 text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
-          aria-label="Previous story"
+          className="p-2 text-white disabled:opacity-30"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          ← Previous
         </button>
-
-        <button
-          onClick={onClose}
-          className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"
-          aria-label="Close stories"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
+        <span className="text-white/70 text-sm">
+          {currentIndex + 1} / {total}
+        </span>
         <button
           onClick={onNext}
-          disabled={currentIndex === totalStories - 1}
-          className="p-2 text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
-          aria-label="Next story"
+          disabled={currentIndex === total - 1}
+          className="p-2 text-white disabled:opacity-30"
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          Next →
         </button>
-      </div>
-
-      {/* Keyboard hints */}
-      <div className="mt-4 text-center text-white/60 text-sm">
-        Use arrow keys, space, or swipe to navigate • Press ESC to close
       </div>
     </div>
   );
-};
-
-export default styled(StoryNavigator);
+}
 
