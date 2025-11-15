@@ -94,3 +94,4 @@ export type PaginatedResult<T> = {
 
 // Brand types for type safety
 export type Brand<K, T> = K & { __brand: T };
+
