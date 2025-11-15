@@ -13,6 +13,7 @@ const nextConfig = {
       'assets.coingecko.com',
       'tokens.1inch.io',
       'cloudflare-ipfs.com',
+      'logos.covalenthq.com',
     ],
     formats: ['image/avif', 'image/webp'],
   },
