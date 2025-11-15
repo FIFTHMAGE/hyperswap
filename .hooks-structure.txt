@@ -1,0 +1,28 @@
+# Hooks Organization
+
+All hooks are now consolidated in `src/hooks/` with the following structure:
+
+## Core Hooks (22 hooks)
+General utility hooks that can be reused across the application:
+- State management: useAsync, useLocalStorage, usePrevious
+- UI interactions: useDebounce, useInterval, useMediaQuery, useOnClickOutside, useOnScreen, useWindowSize
+- Application: useChainId, useBalance, useGasPrice, useToast, useTransaction, useWallet
+- Features: useKeyboardShortcuts, useMobileDetection, usePrefetch, useRetry, useTheme, useWebSocket, useCopyToClipboard
+
+## Domain Hooks (17 hooks)
+Business logic and domain-specific hooks:
+- Swap: useSwapQuote, useSwapHistory, useSwapSettings
+- Tokens: useTokenBalance, useTokenBalances, useTokenPrice, useTokenPrices, useTokenSearch, useTokenFavorites, useFavoriteTokens
+- Portfolio: usePortfolio, useTransactionHistory
+- Liquidity: useLiquidityPools
+- Other: useApproval, useLimitOrders, useWrappedData, useWrappedStats
+
+## Feature Hooks (9 hooks)
+Feature-specific hooks for specialized functionality:
+- Realtime: useRealTimePrice, useRealtimeAlerts, useRealtimeMetrics, useRealtimePortfolio, useRealtimeSubscription
+- Live features: useLiveBalance, useLiveChart
+- PWA: usePWAFeatures
+- Alerts: usePriceAlerts
+
+Total: 48 custom hooks organized across 3 categories
+
