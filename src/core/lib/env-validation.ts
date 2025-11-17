@@ -29,4 +29,3 @@ export function initializeEnv() {
 if (process.env.NODE_ENV === 'development') {
   initializeEnv();
 }
-

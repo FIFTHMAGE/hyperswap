@@ -28,7 +28,8 @@ export function measureRenderTime(componentName: string, callback: () => void) {
   const end = performance.now();
   const duration = end - start;
 
-  if (duration > 16) { // More than one frame (60fps)
+  if (duration > 16) {
+    // More than one frame (60fps)
     console.warn(`${componentName} render took ${duration.toFixed(2)}ms`);
   }
 }
@@ -68,19 +69,19 @@ export function getPageLoadMetrics() {
   }
 
   const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-  
+
   if (!navigation) return null;
 
   return {
     // Time to first byte
     ttfb: navigation.responseStart - navigation.requestStart,
-    
+
     // DOM content loaded
     domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-    
+
     // Full page load
     loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
-    
+
     // Total page load time
     totalLoadTime: navigation.loadEventEnd - navigation.fetchStart,
   };
@@ -118,8 +119,8 @@ export function getResourceTimings() {
   }
 
   const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-  
-  return resources.map(resource => ({
+
+  return resources.map((resource) => ({
     name: resource.name,
     duration: resource.duration,
     size: resource.transferSize,
@@ -136,4 +137,3 @@ export function clearPerformanceMarks() {
     performance.clearMeasures();
   }
 }
-
