@@ -25,4 +25,3 @@ export function getChainColor(chainId: number): string {
 export function getChainLogo(chainId: number): string {
   return chainLogos[chainId] || '🔗';
 }
-

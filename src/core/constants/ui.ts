@@ -118,4 +118,3 @@ export const MAX_DISPLAY = {
   POOLS: 50,
   HISTORY_ITEMS: 20,
 } as const;
-

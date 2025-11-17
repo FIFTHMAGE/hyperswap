@@ -100,4 +100,3 @@ export const RATE_LIMITS = {
   BALANCE_UPDATE_MS: 30000, // 30 seconds
   MAX_REQUESTS_PER_MINUTE: 60,
 } as const;
-

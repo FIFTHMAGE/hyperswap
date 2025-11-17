@@ -20,19 +20,22 @@ export const CHAIN_IDS = {
 /**
  * Chain information
  */
-export const CHAINS: Record<ChainId, {
-  id: ChainId;
-  name: string;
-  shortName: string;
-  nativeCurrency: {
+export const CHAINS: Record<
+  ChainId,
+  {
+    id: ChainId;
     name: string;
-    symbol: string;
-    decimals: number;
-  };
-  rpcUrls: string[];
-  blockExplorerUrls: string[];
-  iconUrl: string;
-}> = {
+    shortName: string;
+    nativeCurrency: {
+      name: string;
+      symbol: string;
+      decimals: number;
+    };
+    rpcUrls: string[];
+    blockExplorerUrls: string[];
+    iconUrl: string;
+  }
+> = {
   [CHAIN_IDS.ETHEREUM]: {
     id: 1,
     name: 'Ethereum Mainnet',
@@ -162,4 +165,3 @@ export function getSupportedChainIds(): ChainId[] {
 export function isChainSupported(chainId: number): chainId is ChainId {
   return chainId in CHAINS;
 }
-

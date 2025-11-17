@@ -113,10 +113,7 @@ export const UNISWAP_V3_FEE_TIERS = {
 /**
  * Get router address for a DEX protocol
  */
-export function getRouterAddress(
-  protocol: string,
-  chainId: number
-): string | undefined {
+export function getRouterAddress(protocol: string, chainId: number): string | undefined {
   switch (protocol) {
     case DEX_PROTOCOLS.UNISWAP_V2:
       return UNISWAP_V2_ROUTER[chainId];
@@ -126,4 +123,3 @@ export function getRouterAddress(
       return undefined;
   }
 }
-

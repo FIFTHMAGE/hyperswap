@@ -47,4 +47,3 @@ export const commonTokens: Record<string, TokenInfo> = {
 export function getTokenInfo(symbol: string): TokenInfo | null {
   return commonTokens[symbol.toUpperCase()] || null;
 }
-

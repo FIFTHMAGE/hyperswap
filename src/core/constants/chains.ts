@@ -94,4 +94,3 @@ export const SUPPORTED_CHAINS: Record<SupportedChainId, ChainConfig> = {
 };
 
 export const CHAIN_IDS = Object.keys(SUPPORTED_CHAINS).map(Number) as SupportedChainId[];
-

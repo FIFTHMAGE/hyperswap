@@ -10,4 +10,3 @@ export const SUCCESS_MESSAGES = {
   COPIED_TO_CLIPBOARD: 'Copied to clipboard!',
   IMAGE_DOWNLOADED: 'Image downloaded successfully',
 } as const;
-

@@ -10,4 +10,3 @@ export const metadata = {
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
-

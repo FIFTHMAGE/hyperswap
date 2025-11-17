@@ -28,4 +28,3 @@ export const WRAPPED_CONFIG = {
     manyTx: 'Made X transactions in 2024! ⚡ #CryptoWrapped',
   },
 };
-

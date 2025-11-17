@@ -24,4 +24,3 @@ export const LOADING_MESSAGES = {
   LOADING_PORTFOLIO: 'Loading portfolio...',
   CONNECTING_WALLET: 'Connecting wallet...',
 } as const;
-
