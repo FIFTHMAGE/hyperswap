@@ -20,7 +20,7 @@ export const colors = {
     800: '#1e40af',
     900: '#1e3a8a',
   },
-  
+
   // Semantic colors
   success: {
     light: '#10b981',
@@ -42,7 +42,7 @@ export const colors = {
     DEFAULT: '#2563eb',
     dark: '#1d4ed8',
   },
-  
+
   // Neutral colors
   gray: {
     50: '#f9fafb',
@@ -180,4 +180,3 @@ export const theme = {
 } as const;
 
 export type Theme = typeof theme;
-

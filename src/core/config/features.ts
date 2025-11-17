@@ -34,7 +34,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     enabled: true,
     description: 'Year-in-review wrapped experience',
   },
-  
+
   // Advanced features
   MULTI_HOP_SWAPS: {
     enabled: true,
@@ -48,7 +48,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     enabled: false,
     description: 'Cross-chain token swaps via bridges',
   },
-  
+
   // Social features
   SOCIAL_SHARING: {
     enabled: true,
@@ -58,7 +58,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     enabled: false,
     description: 'User referral program',
   },
-  
+
   // Analytics
   ADVANCED_ANALYTICS: {
     enabled: true,
@@ -68,7 +68,7 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
     enabled: false,
     description: 'Token price alerts and notifications',
   },
-  
+
   // Experimental
   AI_TRADING_SUGGESTIONS: {
     enabled: false,
@@ -90,22 +90,19 @@ export const FEATURE_FLAGS: Record<string, FeatureFlag> = {
 export function isFeatureEnabled(featureName: string): boolean {
   const feature = FEATURE_FLAGS[featureName];
   if (!feature) return false;
-  
+
   return feature.enabled;
 }
 
 /**
  * Check if feature is enabled for specific chain
  */
-export function isFeatureEnabledForChain(
-  featureName: string,
-  chainId: number
-): boolean {
+export function isFeatureEnabledForChain(featureName: string, chainId: number): boolean {
   const feature = FEATURE_FLAGS[featureName];
   if (!feature || !feature.enabled) return false;
-  
+
   if (!feature.enabledForChains) return true;
-  
+
   return feature.enabledForChains.includes(chainId);
 }
 
@@ -124,4 +121,3 @@ export function getEnabledFeatures(): string[] {
 export function getFeatureDescription(featureName: string): string {
   return FEATURE_FLAGS[featureName]?.description || '';
 }
-

@@ -71,6 +71,5 @@ export function getChainById(chainId: number): ChainConfig | undefined {
 }
 
 export function getEnabledChains(): ChainConfig[] {
-  return Object.values(supportedChains).filter(chain => chain.enabled);
+  return Object.values(supportedChains).filter((chain) => chain.enabled);
 }
-

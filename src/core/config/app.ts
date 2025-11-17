@@ -70,4 +70,3 @@ export const DEFAULT_SETTINGS = {
   currency: 'USD' as const,
   language: 'en' as const,
 } as const;
-

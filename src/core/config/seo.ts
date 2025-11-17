@@ -93,7 +93,8 @@ export const PAGE_SEO = {
     description: 'Swap tokens instantly across multiple blockchains with the best rates',
     openGraph: {
       title: 'Swap Tokens on HyperSwap',
-      description: 'Get the best rates for token swaps across Ethereum, Polygon, Arbitrum, and more',
+      description:
+        'Get the best rates for token swaps across Ethereum, Polygon, Arbitrum, and more',
     },
   },
   liquidity: {
@@ -109,7 +110,8 @@ export const PAGE_SEO = {
     description: 'Track your crypto portfolio across all chains in one place',
     openGraph: {
       title: 'Portfolio Tracker - HyperSwap',
-      description: 'Monitor your assets, transactions, and portfolio performance across multiple blockchains',
+      description:
+        'Monitor your assets, transactions, and portfolio performance across multiple blockchains',
     },
   },
   wrapped: {
@@ -117,7 +119,8 @@ export const PAGE_SEO = {
     description: 'Your DeFi year in review - see your crypto journey',
     openGraph: {
       title: 'Your Crypto Year Wrapped - HyperSwap',
-      description: 'Discover your DeFi stats, favorite tokens, and trading patterns from the past year',
+      description:
+        'Discover your DeFi stats, favorite tokens, and trading patterns from the past year',
     },
   },
 } as const;
@@ -153,4 +156,3 @@ export function getPageSEO(page: keyof typeof PAGE_SEO) {
     ...PAGE_SEO[page],
   };
 }
-

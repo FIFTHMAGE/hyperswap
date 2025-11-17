@@ -40,12 +40,13 @@ export const API_CLIENTS = {
 export const RETRY_CONFIG = {
   maxRetries: API_RETRY_CONFIG.MAX_RETRIES,
   retryDelay: API_RETRY_CONFIG.RETRY_DELAY,
-  retryCondition: (error: any) => {
+  retryCondition: (error: unknown) => {
     // Retry on network errors or 5xx errors
+    const axiosError = error as { response?: { status: number }; code?: string };
     return (
-      !error.response ||
-      (error.response.status >= 500 && error.response.status < 600) ||
-      error.code === 'ECONNABORTED'
+      !axiosError.response ||
+      (axiosError.response.status >= 500 && axiosError.response.status < 600) ||
+      axiosError.code === 'ECONNABORTED'
     );
   },
   shouldResetTimeout: true,
@@ -78,4 +79,3 @@ export const CACHE_CONFIG = {
   ttl: 60000, // 1 minute default
   maxSize: 100, // Maximum number of cached responses
 } as const;
-

@@ -3,7 +3,7 @@
  * @module config/chains
  */
 
-import { CHAINS, CHAIN_IDS } from '@/constants/blockchain';
+import { CHAIN_IDS } from '@/constants/blockchain';
 import type { ChainId } from '@/types/blockchain';
 
 /**
@@ -184,4 +184,3 @@ export function isFeatureSupported(
 ): boolean {
   return CHAIN_CONFIGS[chainId]?.features[feature] ?? false;
 }
-
