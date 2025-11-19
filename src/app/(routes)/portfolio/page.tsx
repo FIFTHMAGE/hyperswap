@@ -1,11 +1,11 @@
 import React from 'react';
 
-export default function SwapPage() {
+export default function PortfolioPage() {
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Swap</h1>
+      <h1 className="text-3xl font-bold mb-6">Portfolio</h1>
       <div className="space-y-4">
-        <p>Content for swap page</p>
+        <p>Content for portfolio page</p>
       </div>
     </div>
   );
