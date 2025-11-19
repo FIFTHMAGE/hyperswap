@@ -1,0 +1,5 @@
+export const ERC20_ABI = [
+  'function balanceOf(address) view returns (uint256)',
+  'function transfer(address, uint256) returns (bool)',
+  'function approve(address, uint256) returns (bool)',
+];
