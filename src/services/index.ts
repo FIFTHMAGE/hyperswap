@@ -1,79 +1,76 @@
 /**
- * Services barrel export
+ * Services barrel export - Layered Architecture
  * @module services
+ *
+ * Service Layer Organization:
+ * - Domain: Business logic specific to application domains
+ * - Infrastructure: External integrations and I/O operations
+ * - Core: Cross-cutting concerns and utilities
  */
 
-// API services
-export * from './api/client';
-export * from './api/covalent.service';
-export * from './api/token-price.service';
+// ========================================
+// DOMAIN SERVICES (Business Logic)
+// ========================================
 
-// Blockchain services
-export * from './blockchain/provider.service';
-export * from './blockchain/wallet.service';
-export * from './blockchain/transaction.service';
+/**
+ * Domain services handle business logic specific to application domains
+ * These services orchestrate core business operations
+ */
+export * from './domain';
 
-// Cache services
-export * from './cache/memory-cache.service';
-export * from './cache/local-storage-cache.service';
+// Backward compatibility exports for domain services
+export * from './domain/swap';
+export * from './domain/portfolio';
+export * from './domain/liquidity';
+export * from './domain/token';
+export * from './domain/wrapped';
+export * from './domain/analytics';
+export * from './domain/defi';
 
-// Error services
-export * from './error/error-handler.service';
-export * from './error/logger.service';
+// ========================================
+// INFRASTRUCTURE SERVICES (External I/O)
+// ========================================
 
-// Notification services
+/**
+ * Infrastructure services handle external integrations
+ * These services manage communication with external systems
+ */
+export * from './infrastructure';
+
+// Backward compatibility exports for infrastructure services
+export * from './infrastructure/api';
+export * from './infrastructure/blockchain';
+export * from './infrastructure/realtime';
+
+// ========================================
+// CORE SERVICES (Cross-cutting Concerns)
+// ========================================
+
+/**
+ * Core services provide cross-cutting concerns and utilities
+ * These services are used across all layers
+ */
+export * from './core';
+
+// Backward compatibility exports for core services
+export * from './core/cache';
+export * from './core/logger';
+export * from './core/error';
+export * from './core/storage';
+export * from './core/security';
+export * from './core/validation';
+
+// ========================================
+// LEGACY EXPORTS (To be refactored)
+// ========================================
+
+// Notification services (to be moved to core/notifications)
 export * from './notification/toast.service';
 export * from './notification/push.service';
 
-// Real-time services
-export * from './realtime/websocket.service';
-export * from './realtime/subscription-manager.service';
-export * from './realtime/price-feed.service';
-
-// Security services
-export * from './security/rate-limiter.service';
-export * from './security/input-sanitizer.service';
-
-// Storage services
-export * from './storage/indexed-db.service';
-export * from './storage/session.service';
-
-// Validation services
-export * from './validation/schema-validator.service';
-
-// Analytics services
-export * from './analytics/tracker.service';
-export * from './analytics/performance.service';
-
-// Export services
+// Export services (to be moved to core/export)
 export * from './export/pdf.service';
 export * from './export/csv.service';
 
-// Swap services
-export * from './swap/aggregator.service';
-export * from './swap/quote.service';
-export * from './swap/execution.service';
-export * from './swap/history.service';
-export * from './swap/route-optimizer.service';
-
-// Liquidity services
-export * from './liquidity/pool-discovery.service';
-export * from './liquidity/pool-analytics.service';
-export * from './liquidity/position-tracker.service';
-export * from './liquidity/il-calculator.service';
-
-// Portfolio services
-export * from './portfolio/balance.service';
-export * from './portfolio/valuation.service';
-export * from './portfolio/transaction-history.service';
-export * from './portfolio/pnl-calculator.service';
-
-// Wrapped services
-export * from './wrapped/data-aggregator.service';
-export * from './wrapped/statistics.service';
-export * from './wrapped/generator.service';
-export * from './wrapped/share.service';
-
-// Token services
-export * from './token/metadata.service';
-export * from './token/favorites.service';
+// Shared utilities (already properly structured)
+export * from './shared';
