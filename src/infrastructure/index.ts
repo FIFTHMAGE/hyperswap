@@ -1,6 +1,13 @@
-// Re-export infrastructure modules
-export * from './api';
-export * from './middleware';
-export * from './storage';
-export * from './cache';
-export * from './logger';
+/**
+ * Infrastructure layer barrel export
+ * @module infrastructure
+ *
+ * Infrastructure layer handles:
+ * - External API integrations
+ * - Third-party service connections
+ * - Data persistence
+ * - Network communication
+ */
+
+// API infrastructure
+export * from './api/base';
