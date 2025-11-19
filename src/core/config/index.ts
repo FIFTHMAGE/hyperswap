@@ -3,19 +3,38 @@
  * @module config
  */
 
+// Environment configuration (must be first)
+export * from './validation';
+export * from './env';
+
+// Feature flags
+export * from './features';
+export * from './features.config';
+export * from './feature-flags.config';
+
+// Application configuration
 export * from './api';
 export * from './app';
+
+// Chain configuration
 export * from './chains.config';
 export * from './chains';
-export * from './env.config';
-export * from './env';
-export * from './features';
+
+// Performance & caching
 export * from './performance.config';
-export * from './seo';
-export * from './theme';
+export * from './cache.config';
+
+// Network & tokens
+export * from './network.config';
 export * from './tokens.config';
 export * from './dex.config';
-export * from './network.config';
-export * from './feature-flags.config';
+
+// UI configuration
+export * from './theme';
+export * from './seo';
+
+// Analytics
 export * from './analytics.config';
-export * from './cache.config';
+
+// Legacy exports (to be refactored)
+export * from './env.config';

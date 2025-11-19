@@ -1,99 +1,85 @@
 /**
- * Environment variable parser and validator
+ * Environment variable management with validation
  * @module config/env
  */
 
-import { z } from 'zod';
+import { EnvValidator, ValidatedEnv, getPublicEnv, isBrowser, isServer } from './validation';
 
 /**
- * Environment variable schema
+ * Environment validator singleton
  */
-const envSchema = z.object({
-  // Required variables
-  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: z.string().min(1, 'WalletConnect Project ID is required'),
-  COVALENT_API_KEY: z.string().min(1, 'Covalent API key is required'),
-
-  // Optional variables with defaults
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-
-  // Feature flags
-  NEXT_PUBLIC_ENABLE_ANALYTICS: z
-    .string()
-    .transform((val) => val === 'true')
-    .default('false'),
-  NEXT_PUBLIC_ENABLE_SENTRY: z
-    .string()
-    .transform((val) => val === 'true')
-    .default('false'),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
-
-  // Optional configuration
-  NEXT_PUBLIC_CUSTOM_RPC_URLS: z.string().optional(),
-  API_RATE_LIMIT: z.string().transform(Number).default('60'),
-
-  // Development
-  NEXT_TELEMETRY_DISABLED: z.string().optional(),
-  NEXT_PUBLIC_SHOW_ERRORS: z
-    .string()
-    .transform((val) => val === 'true')
-    .default('false'),
-});
+const envValidator = EnvValidator.getInstance();
 
 /**
- * Parsed and validated environment variables
+ * Exported type for validated environment
  */
-export type Env = z.infer<typeof envSchema>;
-
-/**
- * Validate environment variables
- */
-export function validateEnv(): Env {
-  try {
-    return envSchema.parse(process.env);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const missingVars = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join('\n');
-
-      throw new Error(
-        `Invalid environment variables:\n${missingVars}\n\nPlease check your .env.local file.`
-      );
-    }
-    throw error;
-  }
-}
+export type Env = ValidatedEnv;
 
 /**
  * Get validated environment variables
+ * Caches the validation result for performance
  */
-let cachedEnv: Env | null = null;
-
 export function getEnv(): Env {
-  if (!cachedEnv) {
-    cachedEnv = validateEnv();
-  }
-  return cachedEnv;
+  return envValidator.get();
 }
 
 /**
- * Check if running in production
+ * Validate environment on initialization
+ * Should be called early in the application lifecycle
+ */
+export function validateEnv(): Env {
+  return envValidator.validate();
+}
+
+/**
+ * Reset environment cache (useful for testing)
+ */
+export function resetEnvCache(): void {
+  envValidator.reset();
+}
+
+/**
+ * Environment check utilities
  */
 export function isProduction(): boolean {
-  return getEnv().NODE_ENV === 'production';
+  return envValidator.isProduction();
 }
 
-/**
- * Check if running in development
- */
 export function isDevelopment(): boolean {
-  return getEnv().NODE_ENV === 'development';
+  return envValidator.isDevelopment();
+}
+
+export function isTest(): boolean {
+  return envValidator.isTest();
 }
 
 /**
- * Check if running in test environment
+ * Safe environment variable access
  */
-export function isTest(): boolean {
-  return getEnv().NODE_ENV === 'test';
+export { isBrowser, isServer, getPublicEnv };
+
+/**
+ * Get WalletConnect Project ID (public)
+ */
+export function getWalletConnectProjectId(): string {
+  return getEnv().NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+}
+
+/**
+ * Get Covalent API Key (server-only)
+ */
+export function getCovalentApiKey(): string {
+  if (isBrowser()) {
+    throw new Error('Cannot access Covalent API key in browser environment');
+  }
+  return getEnv().COVALENT_API_KEY;
+}
+
+/**
+ * Get application URL
+ */
+export function getAppUrl(): string {
+  return getEnv().NEXT_PUBLIC_APP_URL;
 }
 
 /**
@@ -101,5 +87,84 @@ export function isTest(): boolean {
  */
 export function getCustomRpcUrls(): string[] {
   const urls = getEnv().NEXT_PUBLIC_CUSTOM_RPC_URLS;
-  return urls ? urls.split(',').map((url) => url.trim()) : [];
+  if (!urls) return [];
+
+  return urls
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Get API rate limit configuration
+ */
+export function getRateLimitConfig() {
+  const env = getEnv();
+  return {
+    limit: env.API_RATE_LIMIT,
+    window: env.API_RATE_WINDOW,
+  };
+}
+
+/**
+ * Get cache TTL configuration
+ */
+export function getCacheTTL(): number {
+  return getEnv().CACHE_TTL;
+}
+
+/**
+ * Check if analytics is enabled
+ */
+export function isAnalyticsEnabled(): boolean {
+  return getEnv().NEXT_PUBLIC_ENABLE_ANALYTICS;
+}
+
+/**
+ * Check if Sentry is enabled
+ */
+export function isSentryEnabled(): boolean {
+  return getEnv().NEXT_PUBLIC_ENABLE_SENTRY;
+}
+
+/**
+ * Get Sentry DSN
+ */
+export function getSentryDSN(): string | undefined {
+  return getEnv().NEXT_PUBLIC_SENTRY_DSN;
+}
+
+/**
+ * Check if debug mode is enabled
+ */
+export function isDebugEnabled(): boolean {
+  return getEnv().NEXT_PUBLIC_ENABLE_DEBUG;
+}
+
+/**
+ * Check if error display is enabled
+ */
+export function shouldShowErrors(): boolean {
+  return getEnv().NEXT_PUBLIC_SHOW_ERRORS || isDevelopment();
+}
+
+/**
+ * Environment configuration summary
+ */
+export function getEnvSummary() {
+  const env = getEnv();
+  return {
+    environment: env.NODE_ENV,
+    appUrl: env.NEXT_PUBLIC_APP_URL,
+    analytics: env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+    sentry: env.NEXT_PUBLIC_ENABLE_SENTRY,
+    debug: env.NEXT_PUBLIC_ENABLE_DEBUG,
+    rateLimit: {
+      limit: env.API_RATE_LIMIT,
+      window: env.API_RATE_WINDOW,
+    },
+    cache: {
+      ttl: env.CACHE_TTL,
+    },
+  };
 }
