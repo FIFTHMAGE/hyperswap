@@ -1,61 +1,107 @@
 /**
- * Card component
+ * Card - Reusable card component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text } from 'react-native';
 
-import type { ReactNode } from 'react';
-
-interface CardProps {
-  children: ReactNode;
-  title?: string;
-  subtitle?: string;
-  footer?: ReactNode;
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-  bordered?: boolean;
-  hoverable?: boolean;
+export interface CardProps {
+  children: React.ReactNode;
   className?: string;
 }
 
-export function Card({
-  children,
-  title,
-  subtitle,
-  footer,
-  padding = 'md',
-  bordered = true,
-  hoverable = false,
-  className = '',
-}: CardProps) {
-  const paddings = {
-    none: '',
-    sm: 'p-3',
-    md: 'p-4',
-    lg: 'p-6',
-  };
-
+export function Card({ children, className = '' }: CardProps) {
   return (
-    <div
-      className={`rounded-lg bg-white dark:bg-gray-800 
-        ${bordered ? 'border border-gray-200 dark:border-gray-700' : ''}
-        ${hoverable ? 'hover:shadow-lg transition-shadow duration-200' : ''}
-        ${className}`}
+    <View
+      className={`
+        bg-white
+        rounded-2xl
+        shadow-lg
+        p-6
+        ${className}
+      `}
     >
-      {(title || subtitle) && (
-        <div className={`border-b border-gray-200 dark:border-gray-700 ${paddings[padding]}`}>
-          {title && (
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
-          )}
-          {subtitle && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>}
-        </div>
-      )}
-      <div className={paddings[padding]}>{children}</div>
-      {footer && (
-        <div className={`border-t border-gray-200 dark:border-gray-700 ${paddings[padding]}`}>
-          {footer}
-        </div>
-      )}
-    </div>
+      {children}
+    </View>
+  );
+}
+
+export interface CardHeaderProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardHeader({ children, className = '' }: CardHeaderProps) {
+  return (
+    <View
+      className={`
+        mb-4
+        pb-4
+        border-b
+        border-gray-200
+        ${className}
+      `}
+    >
+      {children}
+    </View>
+  );
+}
+
+export interface CardTitleProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardTitle({ children, className = '' }: CardTitleProps) {
+  return (
+    <Text
+      className={`
+        text-xl
+        font-bold
+        text-gray-900
+        ${className}
+      `}
+    >
+      {children}
+    </Text>
+  );
+}
+
+export interface CardContentProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardContent({ children, className = '' }: CardContentProps) {
+  return (
+    <View
+      className={`
+        ${className}
+      `}
+    >
+      {children}
+    </View>
+  );
+}
+
+export interface CardFooterProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function CardFooter({ children, className = '' }: CardFooterProps) {
+  return (
+    <View
+      className={`
+        mt-4
+        pt-4
+        border-t
+        border-gray-200
+        ${className}
+      `}
+    >
+      {children}
+    </View>
   );
 }
