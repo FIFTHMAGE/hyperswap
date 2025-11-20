@@ -1,25 +1,45 @@
 /**
- * Spinner component for loading states
+ * Spinner - Loading spinner component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, ActivityIndicator } from 'react-native';
 
-interface SpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+export interface SpinnerProps {
+  size?: 'small' | 'large' | number;
+  color?: string;
   className?: string;
 }
 
-export function Spinner({ size = 'md', className = '' }: SpinnerProps) {
-  const sizeClasses = {
-    sm: 'w-4 h-4 border-2',
-    md: 'w-8 h-8 border-3',
-    lg: 'w-12 h-12 border-4',
-  };
+export function Spinner({ size = 'large', color = '#6366f1', className = '' }: SpinnerProps) {
+  return (
+    <View
+      className={`
+        items-center
+        justify-center
+        ${className}
+      `}
+    >
+      <ActivityIndicator size={size} color={color} />
+    </View>
+  );
+}
+
+export interface SpinnerOverlayProps {
+  visible: boolean;
+  message?: string;
+}
+
+export function SpinnerOverlay({ visible, message }: SpinnerOverlayProps) {
+  if (!visible) return null;
 
   return (
-    <div
-      className={`${sizeClasses[size]} border-blue-600 border-t-transparent rounded-full animate-spin ${className}`}
-    />
+    <View className="absolute inset-0 bg-black/50 items-center justify-center z-50">
+      <View className="bg-white rounded-2xl p-6 items-center">
+        <ActivityIndicator size="large" color="#6366f1" />
+        {message && <View className="text-gray-700 mt-4">{message}</View>}
+      </View>
+    </View>
   );
 }
