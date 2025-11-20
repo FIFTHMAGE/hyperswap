@@ -1,46 +1,56 @@
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/**
+ * Logger - Frontend logging utility
+ * @module utils
+ */
 
-class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+}
 
-  private log(level: LogLevel, message: string, ...args: any[]) {
-    if (!this.isDevelopment && level === 'debug') return;
+export class Logger {
+  private context: string;
+  private minLevel: LogLevel;
+  private isDevelopment: boolean;
 
-    const timestamp = new Date().toISOString();
-    const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
+  constructor(context: string, minLevel: LogLevel = LogLevel.INFO) {
+    this.context = context;
+    this.minLevel = minLevel;
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+  }
 
-    switch (level) {
-      case 'debug':
-        console.debug(prefix, message, ...args);
-        break;
-      case 'info':
-        console.info(prefix, message, ...args);
-        break;
-      case 'warn':
-        console.warn(prefix, message, ...args);
-        break;
-      case 'error':
-        console.error(prefix, message, ...args);
-        break;
+  debug(message: string, ...args: any[]): void {
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      console.debug(`[${this.context}] ${message}`, ...args);
     }
   }
 
-  debug(message: string, ...args: any[]) {
-    this.log('debug', message, ...args);
+  info(message: string, ...args: any[]): void {
+    if (this.shouldLog(LogLevel.INFO)) {
+      console.info(`[${this.context}] ${message}`, ...args);
+    }
   }
 
-  info(message: string, ...args: any[]) {
-    this.log('info', message, ...args);
+  warn(message: string, ...args: any[]): void {
+    if (this.shouldLog(LogLevel.WARN)) {
+      console.warn(`[${this.context}] ${message}`, ...args);
+    }
   }
 
-  warn(message: string, ...args: any[]) {
-    this.log('warn', message, ...args);
+  error(message: string, error?: Error, ...args: any[]): void {
+    if (this.shouldLog(LogLevel.ERROR)) {
+      console.error(`[${this.context}] ${message}`, error, ...args);
+    }
   }
 
-  error(message: string, ...args: any[]) {
-    this.log('error', message, ...args);
+  private shouldLog(level: LogLevel): boolean {
+    if (!this.isDevelopment && level < LogLevel.WARN) {
+      return false;
+    }
+    return level >= this.minLevel;
   }
 }
 
-export const logger = new Logger();
-
+export const logger = new Logger('HyperSwap');
