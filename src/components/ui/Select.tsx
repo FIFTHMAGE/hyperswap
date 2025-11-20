@@ -1,61 +1,186 @@
 /**
- * Select dropdown component
+ * Select - Reusable select/dropdown component
  * @module components/ui
  */
 
-'use client';
+import React, { useState } from 'react';
+import { View, Text, Pressable, Modal, FlatList } from 'react-native';
 
-import type { ChangeEvent, ReactNode } from 'react';
-
-interface SelectProps {
+export interface SelectOption {
+  label: string;
   value: string;
-  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
-  children: ReactNode;
+}
+
+export interface SelectProps {
+  options: SelectOption[];
+  value?: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
   label?: string;
   error?: string;
   disabled?: boolean;
-  placeholder?: string;
-  className?: string;
+  containerClassName?: string;
 }
 
 export function Select({
+  options,
   value,
   onChange,
-  children,
+  placeholder = 'Select an option',
   label,
   error,
   disabled = false,
-  placeholder,
-  className = '',
+  containerClassName = '',
 }: SelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
   return (
-    <div className={`w-full ${className}`}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {label}
-        </label>
-      )}
-      <select
-        value={value}
-        onChange={onChange}
+    <View className={`mb-4 ${containerClassName}`}>
+      {label && <Text className="text-sm font-medium text-gray-700 mb-2">{label}</Text>}
+
+      <Pressable
+        onPress={() => !disabled && setIsOpen(true)}
         disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-          ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
-          ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white dark:bg-gray-800'}
-          text-gray-900 dark:text-white`}
+        className={`
+          bg-white
+          border
+          rounded-xl
+          px-4
+          py-3
+          ${error ? 'border-red-500' : 'border-gray-300'}
+          ${disabled ? 'opacity-50' : ''}
+        `}
       >
-        {placeholder && (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        )}
-        {children}
-      </select>
-      {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
-    </div>
+        <Text className={selectedOption ? 'text-gray-900' : 'text-gray-400'}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </Text>
+      </Pressable>
+
+      {error && <Text className="text-sm text-red-500 mt-1">{error}</Text>}
+
+      <Modal
+        visible={isOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <Pressable className="flex-1 bg-black/50 justify-end" onPress={() => setIsOpen(false)}>
+          <View className="bg-white rounded-t-3xl max-h-96">
+            <View className="p-4 border-b border-gray-200">
+              <Text className="text-lg font-semibold text-gray-900">
+                {label || 'Select an option'}
+              </Text>
+            </View>
+
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item.value}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => handleSelect(item.value)}
+                  className={`
+                    p-4
+                    border-b
+                    border-gray-100
+                    ${item.value === value ? 'bg-indigo-50' : ''}
+                  `}
+                >
+                  <Text
+                    className={`
+                      text-base
+                      ${item.value === value ? 'text-indigo-600 font-semibold' : 'text-gray-900'}
+                    `}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              )}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
-export function SelectOption({ value, children }: { value: string; children: ReactNode }) {
-  return <option value={value}>{children}</option>;
+export interface SelectTriggerProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function SelectTrigger({ children, className = '' }: SelectTriggerProps) {
+  return (
+    <View
+      className={`
+        bg-white
+        border
+        border-gray-300
+        rounded-xl
+        px-4
+        py-3
+        ${className}
+      `}
+    >
+      {children}
+    </View>
+  );
+}
+
+export interface SelectContentProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function SelectContent({ children, className = '' }: SelectContentProps) {
+  return (
+    <View
+      className={`
+        bg-white
+        rounded-xl
+        shadow-lg
+        ${className}
+      `}
+    >
+      {children}
+    </View>
+  );
+}
+
+export interface SelectItemProps {
+  children: React.ReactNode;
+  value: string;
+  onSelect: (value: string) => void;
+  className?: string;
+}
+
+export function SelectItem({ children, value, onSelect, className = '' }: SelectItemProps) {
+  return (
+    <Pressable
+      onPress={() => onSelect(value)}
+      className={`
+        p-4
+        border-b
+        border-gray-100
+        ${className}
+      `}
+    >
+      <Text className="text-base text-gray-900">{children}</Text>
+    </Pressable>
+  );
+}
+
+export interface SelectValueProps {
+  children: React.ReactNode;
+  placeholder?: string;
+}
+
+export function SelectValue({ children, placeholder }: SelectValueProps) {
+  return <Text className="text-gray-900">{children || placeholder}</Text>;
 }
