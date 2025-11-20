@@ -1,49 +1,99 @@
 /**
- * Badge component
+ * Badge - Reusable badge component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text } from 'react-native';
 
-import type { ReactNode } from 'react';
-
-interface BadgeProps {
-  children: ReactNode;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'error' | 'info';
+export interface BadgeProps {
+  children: React.ReactNode;
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
   size?: 'sm' | 'md' | 'lg';
-  rounded?: boolean;
   className?: string;
 }
 
-export function Badge({
-  children,
-  variant = 'default',
-  size = 'md',
-  rounded = false,
-  className = '',
-}: BadgeProps) {
-  const variants = {
-    default: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
-    primary: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    success: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-    warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-    error: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-    info: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
-  };
-
-  const sizes = {
-    sm: 'text-xs px-2 py-0.5',
-    md: 'text-sm px-2.5 py-0.5',
-    lg: 'text-base px-3 py-1',
-  };
-
+export function Badge({ children, variant = 'default', size = 'md', className = '' }: BadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center font-medium ${variants[variant]} ${sizes[size]} ${
-        rounded ? 'rounded-full' : 'rounded'
-      } ${className}`}
+    <View
+      className={`
+        ${getVariantStyles(variant)}
+        ${getSizeStyles(size)}
+        rounded-full
+        items-center
+        justify-center
+        ${className}
+      `}
     >
-      {children}
-    </span>
+      <Text
+        className={`
+          ${getTextStyles(variant)}
+          ${getTextSizeStyles(size)}
+          font-semibold
+        `}
+      >
+        {children}
+      </Text>
+    </View>
   );
+}
+
+function getVariantStyles(variant: BadgeProps['variant']): string {
+  switch (variant) {
+    case 'default':
+      return 'bg-gray-100';
+    case 'success':
+      return 'bg-green-100';
+    case 'warning':
+      return 'bg-yellow-100';
+    case 'error':
+      return 'bg-red-100';
+    case 'info':
+      return 'bg-blue-100';
+    default:
+      return 'bg-gray-100';
+  }
+}
+
+function getTextStyles(variant: BadgeProps['variant']): string {
+  switch (variant) {
+    case 'default':
+      return 'text-gray-800';
+    case 'success':
+      return 'text-green-800';
+    case 'warning':
+      return 'text-yellow-800';
+    case 'error':
+      return 'text-red-800';
+    case 'info':
+      return 'text-blue-800';
+    default:
+      return 'text-gray-800';
+  }
+}
+
+function getSizeStyles(size: BadgeProps['size']): string {
+  switch (size) {
+    case 'sm':
+      return 'px-2 py-0.5';
+    case 'md':
+      return 'px-3 py-1';
+    case 'lg':
+      return 'px-4 py-1.5';
+    default:
+      return 'px-3 py-1';
+  }
+}
+
+function getTextSizeStyles(size: BadgeProps['size']): string {
+  switch (size) {
+    case 'sm':
+      return 'text-xs';
+    case 'md':
+      return 'text-sm';
+    case 'lg':
+      return 'text-base';
+    default:
+      return 'text-sm';
+  }
 }
