@@ -1,62 +1,71 @@
 /**
- * Textarea component
+ * TextArea - Multi-line text input component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text, TextInput } from 'react-native';
 
-import type { ChangeEvent } from 'react';
-
-interface TextareaProps {
+export interface TextAreaProps {
   value: string;
-  onChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
-  label?: string;
+  onChange: (value: string) => void;
   placeholder?: string;
-  error?: string;
-  disabled?: boolean;
   rows?: number;
+  disabled?: boolean;
+  error?: string;
+  label?: string;
   maxLength?: number;
   className?: string;
 }
 
-export function Textarea({
+export function TextArea({
   value,
   onChange,
-  label,
   placeholder,
-  error,
-  disabled = false,
   rows = 4,
+  disabled = false,
+  error,
+  label,
   maxLength,
   className = '',
-}: TextareaProps) {
+}: TextAreaProps) {
   return (
-    <div className={`w-full ${className}`}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {label}
-        </label>
-      )}
-      <textarea
+    <View className={className}>
+      {label && <Text className="block text-sm font-medium text-gray-700 mb-1">{label}</Text>}
+
+      <TextInput
         value={value}
-        onChange={onChange}
+        onChangeText={onChange}
         placeholder={placeholder}
-        disabled={disabled}
-        rows={rows}
+        multiline
+        numberOfLines={rows}
         maxLength={maxLength}
-        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none
-          ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
-          ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white dark:bg-gray-800'}
-          text-gray-900 dark:text-white`}
+        editable={!disabled}
+        className={`
+          w-full
+          px-3
+          py-2
+          border
+          rounded-lg
+          ${error ? 'border-red-500' : 'border-gray-300'}
+          ${disabled ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-900'}
+          focus:outline-none
+          focus:ring-2
+          ${error ? 'focus:ring-red-500' : 'focus:ring-indigo-500'}
+        `}
+        style={{
+          height: rows * 24,
+          textAlignVertical: 'top',
+        }}
       />
-      <div className="flex justify-between mt-1">
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        {maxLength && (
-          <p className="text-sm text-gray-500 ml-auto">
-            {value.length}/{maxLength}
-          </p>
-        )}
-      </div>
-    </div>
+
+      {error && <Text className="mt-1 text-sm text-red-600">{error}</Text>}
+
+      {maxLength && (
+        <Text className="mt-1 text-sm text-gray-500 text-right">
+          {value.length}/{maxLength}
+        </Text>
+      )}
+    </View>
   );
 }
