@@ -1,39 +1,19 @@
-/**
- * Jest setup file
- */
+import '@testing-library/jest-native/extend-expect';
 
-// Learn more: https://github.com/testing-library/jest-dom
-import '@testing-library/jest-dom';
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID = 'test-project-id';
-process.env.COVALENT_API_KEY = 'test-api-key';
+// Mock react-native modules
+jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(), // Deprecated
-    removeListener: jest.fn(), // Deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-});
+// Global test timeout
+jest.setTimeout(10000);
 
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  takeRecords() {
-    return [];
-  }
-  unobserve() {}
+// Suppress console warnings in tests
+global.console = {
+  ...console,
+  warn: jest.fn(),
+  error: jest.fn(),
 };
-
-// Mock fetch
-global.fetch = jest.fn();
