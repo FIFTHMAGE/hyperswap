@@ -1,15 +1,16 @@
 /**
- * Switch component
+ * Switch - Toggle switch component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Pressable } from 'react-native';
 
-interface SwitchProps {
+export interface SwitchProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
-  label?: string;
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -17,35 +18,61 @@ export function Switch({
   checked,
   onChange,
   disabled = false,
-  label,
+  size = 'md',
   className = '',
 }: SwitchProps) {
   return (
-    <label className={`inline-flex items-center gap-3 cursor-pointer ${className}`}>
-      <div className="relative">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          disabled={disabled}
-          className="sr-only"
-        />
-        <div
-          className={`
-            w-11 h-6 rounded-full transition-colors
-            ${checked ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-        >
-          <div
-            className={`
-              absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform
-              ${checked ? 'translate-x-5' : 'translate-x-0'}
-            `}
-          />
-        </div>
-      </div>
-      {label && <span className="text-gray-900 dark:text-white">{label}</span>}
-    </label>
+    <Pressable
+      onPress={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+      className={`
+        ${getSizeStyles(size).container}
+        ${checked ? 'bg-indigo-600' : 'bg-gray-300'}
+        ${disabled ? 'opacity-50' : ''}
+        rounded-full
+        transition-colors
+        ${className}
+      `}
+    >
+      <View
+        className={`
+          ${getSizeStyles(size).thumb}
+          bg-white
+          rounded-full
+          shadow-md
+          transition-transform
+          ${checked ? getSizeStyles(size).thumbChecked : 'translate-x-0'}
+        `}
+      />
+    </Pressable>
   );
+}
+
+function getSizeStyles(size: SwitchProps['size']) {
+  switch (size) {
+    case 'sm':
+      return {
+        container: 'w-8 h-4 p-0.5',
+        thumb: 'w-3 h-3',
+        thumbChecked: 'translate-x-4',
+      };
+    case 'md':
+      return {
+        container: 'w-11 h-6 p-1',
+        thumb: 'w-4 h-4',
+        thumbChecked: 'translate-x-5',
+      };
+    case 'lg':
+      return {
+        container: 'w-14 h-7 p-1',
+        thumb: 'w-5 h-5',
+        thumbChecked: 'translate-x-7',
+      };
+    default:
+      return {
+        container: 'w-11 h-6 p-1',
+        thumb: 'w-4 h-4',
+        thumbChecked: 'translate-x-5',
+      };
+  }
 }
