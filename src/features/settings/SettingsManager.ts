@@ -1,240 +1,69 @@
 /**
- * SettingsManager - User settings management
- * @module features/settings
+ * Settings Manager
+ * Handles user preferences and application settings
  */
+
+import logger from '../../utils/logger';
+import { StorageManager } from '../storage/StorageManager';
 
 export interface UserSettings {
   slippage: number;
   deadline: number;
-  gasPreference: 'low' | 'medium' | 'high';
+  gasPrice: 'slow' | 'medium' | 'fast' | 'custom';
+  customGasPrice?: string;
   theme: 'light' | 'dark' | 'auto';
-  currency: 'USD' | 'EUR' | 'GBP' | 'JPY';
+  currency: string;
   notifications: {
-    transactionComplete: boolean;
+    transactions: boolean;
     priceAlerts: boolean;
-    newFeatures: boolean;
+    news: boolean;
   };
   privacy: {
-    showBalance: boolean;
-    showHistory: boolean;
+    analytics: boolean;
+    errorReporting: boolean;
   };
   advanced: {
     expertMode: boolean;
     multihops: boolean;
-    disableConfirmations: boolean;
+    showTestnets: boolean;
+    autoRouter: boolean;
   };
 }
 
-const DEFAULT_SETTINGS: UserSettings = {
+export const defaultSettings: UserSettings = {
   slippage: 0.5,
-  deadline: 1200,
-  gasPreference: 'medium',
+  deadline: 20,
+  gasPrice: 'medium',
   theme: 'auto',
   currency: 'USD',
   notifications: {
-    transactionComplete: true,
+    transactions: true,
     priceAlerts: true,
-    newFeatures: false,
+    news: false,
   },
   privacy: {
-    showBalance: true,
-    showHistory: true,
+    analytics: true,
+    errorReporting: true,
   },
   advanced: {
     expertMode: false,
     multihops: true,
-    disableConfirmations: false,
+    showTestnets: false,
+    autoRouter: true,
   },
 };
 
-const STORAGE_KEY = 'hyperswap_settings';
+const SETTINGS_KEY = 'app_settings';
 
 export class SettingsManager {
   private settings: UserSettings;
-  private listeners: Set<(settings: UserSettings) => void> = new Set();
+  private storageManager: StorageManager;
+  private listeners: Map<string, Set<(settings: UserSettings) => void>>;
 
   constructor() {
+    this.storageManager = new StorageManager();
+    this.listeners = new Map();
     this.settings = this.loadSettings();
-  }
-
-  /**
-   * Get current settings
-   */
-  getSettings(): UserSettings {
-    return { ...this.settings };
-  }
-
-  /**
-   * Get a specific setting value
-   */
-  get<K extends keyof UserSettings>(key: K): UserSettings[K] {
-    return this.settings[key];
-  }
-
-  /**
-   * Update settings
-   */
-  updateSettings(updates: Partial<UserSettings>): void {
-    this.settings = {
-      ...this.settings,
-      ...updates,
-    };
-    this.saveSettings();
-    this.notifyListeners();
-  }
-
-  /**
-   * Update nested setting
-   */
-  updateNestedSetting<T extends keyof UserSettings>(
-    category: T,
-    updates: Partial<UserSettings[T]>
-  ): void {
-    this.settings = {
-      ...this.settings,
-      [category]: {
-        ...this.settings[category],
-        ...updates,
-      },
-    };
-    this.saveSettings();
-    this.notifyListeners();
-  }
-
-  /**
-   * Set slippage tolerance
-   */
-  setSlippage(slippage: number): void {
-    if (slippage < 0.1 || slippage > 50) {
-      throw new Error('Slippage must be between 0.1% and 50%');
-    }
-    this.updateSettings({ slippage });
-  }
-
-  /**
-   * Set deadline
-   */
-  setDeadline(deadline: number): void {
-    if (deadline < 60 || deadline > 3600) {
-      throw new Error('Deadline must be between 1 minute and 1 hour');
-    }
-    this.updateSettings({ deadline });
-  }
-
-  /**
-   * Set gas preference
-   */
-  setGasPreference(preference: UserSettings['gasPreference']): void {
-    this.updateSettings({ gasPreference: preference });
-  }
-
-  /**
-   * Set theme
-   */
-  setTheme(theme: UserSettings['theme']): void {
-    this.updateSettings({ theme });
-    this.applyTheme();
-  }
-
-  /**
-   * Set currency
-   */
-  setCurrency(currency: UserSettings['currency']): void {
-    this.updateSettings({ currency });
-  }
-
-  /**
-   * Toggle notification setting
-   */
-  toggleNotification(key: keyof UserSettings['notifications']): void {
-    this.updateNestedSetting('notifications', {
-      [key]: !this.settings.notifications[key],
-    } as Partial<UserSettings['notifications']>);
-  }
-
-  /**
-   * Toggle privacy setting
-   */
-  togglePrivacy(key: keyof UserSettings['privacy']): void {
-    this.updateNestedSetting('privacy', {
-      [key]: !this.settings.privacy[key],
-    } as Partial<UserSettings['privacy']>);
-  }
-
-  /**
-   * Toggle advanced setting
-   */
-  toggleAdvanced(key: keyof UserSettings['advanced']): void {
-    this.updateNestedSetting('advanced', {
-      [key]: !this.settings.advanced[key],
-    } as Partial<UserSettings['advanced']>);
-  }
-
-  /**
-   * Reset to default settings
-   */
-  reset(): void {
-    this.settings = { ...DEFAULT_SETTINGS };
-    this.saveSettings();
-    this.applyTheme();
-    this.notifyListeners();
-  }
-
-  /**
-   * Reset specific category
-   */
-  resetCategory<T extends keyof UserSettings>(category: T): void {
-    this.settings = {
-      ...this.settings,
-      [category]: DEFAULT_SETTINGS[category],
-    };
-    this.saveSettings();
-    this.notifyListeners();
-  }
-
-  /**
-   * Export settings
-   */
-  export(): string {
-    return JSON.stringify(this.settings, null, 2);
-  }
-
-  /**
-   * Import settings
-   */
-  import(settingsJson: string): void {
-    try {
-      const imported = JSON.parse(settingsJson);
-      this.validateSettings(imported);
-      this.settings = imported;
-      this.saveSettings();
-      this.applyTheme();
-      this.notifyListeners();
-    } catch {
-      throw new Error('Invalid settings format');
-    }
-  }
-
-  /**
-   * Subscribe to settings changes
-   */
-  subscribe(listener: (settings: UserSettings) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
-  /**
-   * Apply theme to document
-   */
-  private applyTheme(): void {
-    const theme = this.settings.theme;
-
-    if (theme === 'auto') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.toggle('dark', prefersDark);
-    } else {
-      document.documentElement.classList.toggle('dark', theme === 'dark');
-    }
   }
 
   /**
@@ -242,16 +71,16 @@ export class SettingsManager {
    */
   private loadSettings(): UserSettings {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = this.storageManager.get<UserSettings>(SETTINGS_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
-        this.validateSettings(parsed);
-        return { ...DEFAULT_SETTINGS, ...parsed };
+        // Merge with defaults to handle new settings
+        return { ...defaultSettings, ...stored };
       }
-    } catch {
-      console.error('Failed to load settings');
+      return { ...defaultSettings };
+    } catch (error) {
+      logger.error('Error loading settings:', error);
+      return { ...defaultSettings };
     }
-    return { ...DEFAULT_SETTINGS };
   }
 
   /**
@@ -259,67 +88,147 @@ export class SettingsManager {
    */
   private saveSettings(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
-    } catch {
-      console.error('Failed to save settings');
+      this.storageManager.set(SETTINGS_KEY, this.settings);
+      this.notifyListeners();
+    } catch (error) {
+      logger.error('Error saving settings:', error);
+      throw new Error('Failed to save settings');
     }
   }
 
   /**
-   * Validate settings object
+   * Get all settings
    */
-  private validateSettings(settings: unknown): void {
-    if (!settings || typeof settings !== 'object') {
-      throw new Error('Invalid settings object');
-    }
+  getSettings(): UserSettings {
+    return { ...this.settings };
+  }
 
-    // Validate slippage
-    if (settings.slippage !== undefined) {
-      const slippage = Number(settings.slippage);
-      if (isNaN(slippage) || slippage < 0.1 || slippage > 50) {
-        throw new Error('Invalid slippage value');
-      }
-    }
+  /**
+   * Get a specific setting
+   */
+  getSetting<K extends keyof UserSettings>(key: K): UserSettings[K] {
+    return this.settings[key];
+  }
 
-    // Validate deadline
-    if (settings.deadline !== undefined) {
-      const deadline = Number(settings.deadline);
-      if (isNaN(deadline) || deadline < 60 || deadline > 3600) {
-        throw new Error('Invalid deadline value');
-      }
-    }
+  /**
+   * Update settings
+   */
+  updateSettings(updates: Partial<UserSettings>): void {
+    this.settings = { ...this.settings, ...updates };
+    this.saveSettings();
+  }
 
-    // Validate gas preference
-    if (settings.gasPreference && !['low', 'medium', 'high'].includes(settings.gasPreference)) {
-      throw new Error('Invalid gas preference');
-    }
+  /**
+   * Update a specific setting
+   */
+  updateSetting<K extends keyof UserSettings>(key: K, value: UserSettings[K]): void {
+    this.settings[key] = value;
+    this.saveSettings();
+  }
 
-    // Validate theme
-    if (settings.theme && !['light', 'dark', 'auto'].includes(settings.theme)) {
-      throw new Error('Invalid theme');
+  /**
+   * Update slippage tolerance
+   */
+  setSlippage(slippage: number): void {
+    if (slippage < 0 || slippage > 50) {
+      throw new Error('Slippage must be between 0 and 50');
     }
+    this.settings.slippage = slippage;
+    this.saveSettings();
+  }
 
-    // Validate currency
-    if (settings.currency && !['USD', 'EUR', 'GBP', 'JPY'].includes(settings.currency)) {
-      throw new Error('Invalid currency');
+  /**
+   * Update transaction deadline
+   */
+  setDeadline(deadline: number): void {
+    if (deadline < 1 || deadline > 60) {
+      throw new Error('Deadline must be between 1 and 60 minutes');
+    }
+    this.settings.deadline = deadline;
+    this.saveSettings();
+  }
+
+  /**
+   * Update gas price setting
+   */
+  setGasPrice(gasPrice: UserSettings['gasPrice'], customPrice?: string): void {
+    this.settings.gasPrice = gasPrice;
+    if (gasPrice === 'custom' && customPrice) {
+      this.settings.customGasPrice = customPrice;
+    }
+    this.saveSettings();
+  }
+
+  /**
+   * Update theme
+   */
+  setTheme(theme: UserSettings['theme']): void {
+    this.settings.theme = theme;
+    this.saveSettings();
+    this.applyTheme();
+  }
+
+  /**
+   * Apply theme to document
+   */
+  private applyTheme(): void {
+    const theme = this.settings.theme;
+    const root = document.documentElement;
+
+    if (theme === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('dark', prefersDark);
+    } else {
+      root.classList.toggle('dark', theme === 'dark');
     }
   }
 
   /**
-   * Notify all listeners
+   * Update currency
    */
-  private notifyListeners(): void {
-    const settings = this.getSettings();
-    this.listeners.forEach((listener) => listener(settings));
+  setCurrency(currency: string): void {
+    this.settings.currency = currency;
+    this.saveSettings();
   }
 
   /**
-   * Get recommended slippage for token pair
+   * Toggle notification setting
    */
-  getRecommendedSlippage(_token0: string, _token1: string): number {
-    // Would analyze volatility and liquidity
-    // For now, returning default
-    return DEFAULT_SETTINGS.slippage;
+  toggleNotification(type: keyof UserSettings['notifications']): void {
+    this.settings.notifications[type] = !this.settings.notifications[type];
+    this.saveSettings();
+  }
+
+  /**
+   * Toggle privacy setting
+   */
+  togglePrivacy(type: keyof UserSettings['privacy']): void {
+    this.settings.privacy[type] = !this.settings.privacy[type];
+    this.saveSettings();
+  }
+
+  /**
+   * Toggle advanced setting
+   */
+  toggleAdvanced(type: keyof UserSettings['advanced']): void {
+    this.settings.advanced[type] = !this.settings.advanced[type];
+    this.saveSettings();
+  }
+
+  /**
+   * Enable expert mode
+   */
+  enableExpertMode(): void {
+    this.settings.advanced.expertMode = true;
+    this.saveSettings();
+  }
+
+  /**
+   * Disable expert mode
+   */
+  disableExpertMode(): void {
+    this.settings.advanced.expertMode = false;
+    this.saveSettings();
   }
 
   /**
@@ -330,23 +239,120 @@ export class SettingsManager {
   }
 
   /**
-   * Check if confirmations are disabled
+   * Reset settings to defaults
    */
-  areConfirmationsDisabled(): boolean {
-    return this.settings.advanced.disableConfirmations && this.settings.advanced.expertMode;
+  resetSettings(): void {
+    this.settings = { ...defaultSettings };
+    this.saveSettings();
+  }
+
+  /**
+   * Reset specific section to defaults
+   */
+  resetSection<K extends keyof UserSettings>(section: K): void {
+    this.settings[section] = defaultSettings[section];
+    this.saveSettings();
+  }
+
+  /**
+   * Export settings
+   */
+  exportSettings(): string {
+    return JSON.stringify(this.settings, null, 2);
+  }
+
+  /**
+   * Import settings
+   */
+  importSettings(settingsJson: string): void {
+    try {
+      const imported = JSON.parse(settingsJson) as UserSettings;
+      // Validate imported settings
+      if (this.validateSettings(imported)) {
+        this.settings = { ...defaultSettings, ...imported };
+        this.saveSettings();
+      } else {
+        throw new Error('Invalid settings format');
+      }
+    } catch (error) {
+      logger.error('Error importing settings:', error);
+      throw new Error('Failed to import settings');
+    }
+  }
+
+  /**
+   * Validate settings object
+   */
+  private validateSettings(settings: any): settings is UserSettings {
+    return (
+      typeof settings === 'object' &&
+      typeof settings.slippage === 'number' &&
+      typeof settings.deadline === 'number' &&
+      typeof settings.theme === 'string' &&
+      typeof settings.currency === 'string' &&
+      typeof settings.notifications === 'object' &&
+      typeof settings.privacy === 'object' &&
+      typeof settings.advanced === 'object'
+    );
+  }
+
+  /**
+   * Subscribe to settings changes
+   */
+  subscribe(callback: (settings: UserSettings) => void): () => void {
+    const id = Math.random().toString(36).substring(7);
+    if (!this.listeners.has(id)) {
+      this.listeners.set(id, new Set());
+    }
+    this.listeners.get(id)!.add(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const listeners = this.listeners.get(id);
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          this.listeners.delete(id);
+        }
+      }
+    };
+  }
+
+  /**
+   * Notify all listeners of settings changes
+   */
+  private notifyListeners(): void {
+    this.listeners.forEach((listeners) => {
+      listeners.forEach((callback) => {
+        try {
+          callback(this.getSettings());
+        } catch (error) {
+          logger.error('Error notifying settings listener:', error);
+        }
+      });
+    });
+  }
+
+  /**
+   * Get settings summary for display
+   */
+  getSettingsSummary(): Record<string, any> {
+    return {
+      trading: {
+        slippage: `${this.settings.slippage}%`,
+        deadline: `${this.settings.deadline} minutes`,
+        gasPrice: this.settings.gasPrice,
+      },
+      display: {
+        theme: this.settings.theme,
+        currency: this.settings.currency,
+      },
+      notifications: this.settings.notifications,
+      privacy: this.settings.privacy,
+      advanced: this.settings.advanced,
+    };
   }
 }
 
+// Singleton instance
 export const settingsManager = new SettingsManager();
-
-// Auto-apply theme on initialization
-if (typeof window !== 'undefined') {
-  settingsManager['applyTheme']();
-
-  // Watch for system theme changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (settingsManager.get('theme') === 'auto') {
-      settingsManager['applyTheme']();
-    }
-  });
-}
