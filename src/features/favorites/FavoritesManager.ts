@@ -1,307 +1,182 @@
 /**
  * Favorites Manager
- * Handles user favorites for tokens, pairs, and addresses
+ * Manages user's favorite tokens and trading pairs
  */
 
 import logger from '../../utils/logger';
 import { StorageManager } from '../storage/StorageManager';
 
 export interface FavoriteToken {
+  id: string;
   address: string;
   symbol: string;
   name: string;
-  chainId: number;
+  decimals: number;
+  logoURI?: string;
   addedAt: Date;
+  chainId: number;
 }
 
 export interface FavoritePair {
   id: string;
-  tokenA: string;
-  tokenB: string;
-  chainId: number;
+  tokenIn: string;
+  tokenOut: string;
+  tokenInSymbol: string;
+  tokenOutSymbol: string;
   addedAt: Date;
+  lastTraded?: Date;
+  tradeCount: number;
 }
 
-export interface FavoriteAddress {
-  address: string;
-  label: string;
-  chainId?: number;
-  addedAt: Date;
-}
-
-const STORAGE_KEY_TOKENS = 'favorite_tokens';
-const STORAGE_KEY_PAIRS = 'favorite_pairs';
-const STORAGE_KEY_ADDRESSES = 'favorite_addresses';
+const STORAGE_KEY_TOKENS = 'hyperswap_favorite_tokens';
+const STORAGE_KEY_PAIRS = 'hyperswap_favorite_pairs';
+const MAX_FAVORITES = 50;
 
 export class FavoritesManager {
-  private tokens: FavoriteToken[] = [];
-  private pairs: FavoritePair[] = [];
-  private addresses: FavoriteAddress[] = [];
+  private static instance: FavoritesManager;
+  private tokens: Map<string, FavoriteToken> = new Map();
+  private pairs: Map<string, FavoritePair> = new Map();
   private storageManager: StorageManager;
   private listeners: Set<() => void> = new Set();
 
-  constructor() {
-    this.storageManager = new StorageManager();
+  private constructor(storageManager: StorageManager) {
+    this.storageManager = storageManager;
     this.loadData();
+    logger.info('FavoritesManager initialized.');
   }
 
-  /**
-   * Load data from storage
-   */
+  public static getInstance(storageManager: StorageManager): FavoritesManager {
+    if (!FavoritesManager.instance) {
+      FavoritesManager.instance = new FavoritesManager(storageManager);
+    }
+    return FavoritesManager.instance;
+  }
+
   private loadData(): void {
     try {
+      // Load tokens
       const storedTokens = this.storageManager.get<FavoriteToken[]>(STORAGE_KEY_TOKENS);
       if (storedTokens && Array.isArray(storedTokens)) {
-        this.tokens = storedTokens.map((token) => ({
-          ...token,
-          addedAt: new Date(token.addedAt),
-        }));
+        storedTokens.forEach((token) => {
+          this.tokens.set(token.id, {
+            ...token,
+            addedAt: new Date(token.addedAt),
+          });
+        });
       }
 
+      // Load pairs
       const storedPairs = this.storageManager.get<FavoritePair[]>(STORAGE_KEY_PAIRS);
       if (storedPairs && Array.isArray(storedPairs)) {
-        this.pairs = storedPairs.map((pair) => ({
-          ...pair,
-          addedAt: new Date(pair.addedAt),
-        }));
-      }
-
-      const storedAddresses = this.storageManager.get<FavoriteAddress[]>(STORAGE_KEY_ADDRESSES);
-      if (storedAddresses && Array.isArray(storedAddresses)) {
-        this.addresses = storedAddresses.map((addr) => ({
-          ...addr,
-          addedAt: new Date(addr.addedAt),
-        }));
+        storedPairs.forEach((pair) => {
+          this.pairs.set(pair.id, {
+            ...pair,
+            addedAt: new Date(pair.addedAt),
+            lastTraded: pair.lastTraded ? new Date(pair.lastTraded) : undefined,
+          });
+        });
       }
     } catch (error) {
-      logger.error('Error loading favorites:', error);
+      logger.error('Failed to load favorites from storage:', error);
     }
   }
 
-  /**
-   * Save data to storage
-   */
   private saveData(): void {
     try {
-      this.storageManager.set(STORAGE_KEY_TOKENS, this.tokens);
-      this.storageManager.set(STORAGE_KEY_PAIRS, this.pairs);
-      this.storageManager.set(STORAGE_KEY_ADDRESSES, this.addresses);
+      this.storageManager.set(STORAGE_KEY_TOKENS, Array.from(this.tokens.values()));
+      this.storageManager.set(STORAGE_KEY_PAIRS, Array.from(this.pairs.values()));
+      logger.debug('Favorites saved to storage.');
     } catch (error) {
-      logger.error('Error saving favorites:', error);
+      logger.error('Failed to save favorites to storage:', error);
     }
   }
 
   /**
-   * Add token to favorites
+   * Add a token to favorites
    */
-  addToken(address: string, symbol: string, name: string, chainId: number): void {
-    // Check if already exists
-    if (this.isTokenFavorite(address, chainId)) {
-      return;
+  addToken(
+    address: string,
+    symbol: string,
+    name: string,
+    decimals: number,
+    chainId: number,
+    logoURI?: string
+  ): string {
+    const id = `${chainId}-${address.toLowerCase()}`;
+
+    if (this.tokens.has(id)) {
+      logger.info(`Token ${symbol} already in favorites`);
+      return id;
     }
 
-    this.tokens.unshift({
+    if (this.tokens.size >= MAX_FAVORITES) {
+      throw new Error('Maximum number of favorite tokens reached');
+    }
+
+    const token: FavoriteToken = {
+      id,
       address: address.toLowerCase(),
       symbol,
       name,
-      chainId,
+      decimals,
+      logoURI,
       addedAt: new Date(),
-    });
+      chainId,
+    };
 
+    this.tokens.set(id, token);
     this.saveData();
     this.notifyListeners();
+
+    logger.info(`Token ${symbol} added to favorites`);
+    return id;
   }
 
   /**
-   * Remove token from favorites
+   * Remove a token from favorites
    */
-  removeToken(address: string, chainId: number): void {
-    this.tokens = this.tokens.filter(
-      (token) =>
-        !(token.address.toLowerCase() === address.toLowerCase() && token.chainId === chainId)
-    );
+  removeToken(id: string): boolean {
+    const removed = this.tokens.delete(id);
 
-    this.saveData();
-    this.notifyListeners();
+    if (removed) {
+      this.saveData();
+      this.notifyListeners();
+      logger.info(`Token ${id} removed from favorites`);
+    }
+
+    return removed;
   }
 
   /**
-   * Check if token is favorite
+   * Check if a token is favorited
    */
-  isTokenFavorite(address: string, chainId: number): boolean {
-    return this.tokens.some(
-      (token) => token.address.toLowerCase() === address.toLowerCase() && token.chainId === chainId
-    );
+  isTokenFavorited(address: string, chainId: number): boolean {
+    const id = `${chainId}-${address.toLowerCase()}`;
+    return this.tokens.has(id);
   }
 
   /**
    * Get all favorite tokens
    */
-  getFavoriteTokens(chainId?: number): FavoriteToken[] {
-    if (chainId !== undefined) {
-      return this.tokens.filter((token) => token.chainId === chainId);
-    }
-    return [...this.tokens];
-  }
-
-  /**
-   * Add pair to favorites
-   */
-  addPair(tokenA: string, tokenB: string, chainId: number): void {
-    const id = this.generatePairId(tokenA, tokenB, chainId);
-
-    // Check if already exists
-    if (this.pairs.some((pair) => pair.id === id)) {
-      return;
-    }
-
-    this.pairs.unshift({
-      id,
-      tokenA: tokenA.toLowerCase(),
-      tokenB: tokenB.toLowerCase(),
-      chainId,
-      addedAt: new Date(),
-    });
-
-    this.saveData();
-    this.notifyListeners();
-  }
-
-  /**
-   * Remove pair from favorites
-   */
-  removePair(tokenA: string, tokenB: string, chainId: number): void {
-    const id = this.generatePairId(tokenA, tokenB, chainId);
-    this.pairs = this.pairs.filter((pair) => pair.id !== id);
-
-    this.saveData();
-    this.notifyListeners();
-  }
-
-  /**
-   * Check if pair is favorite
-   */
-  isPairFavorite(tokenA: string, tokenB: string, chainId: number): boolean {
-    const id = this.generatePairId(tokenA, tokenB, chainId);
-    return this.pairs.some((pair) => pair.id === id);
-  }
-
-  /**
-   * Get all favorite pairs
-   */
-  getFavoritePairs(chainId?: number): FavoritePair[] {
-    if (chainId !== undefined) {
-      return this.pairs.filter((pair) => pair.chainId === chainId);
-    }
-    return [...this.pairs];
-  }
-
-  /**
-   * Generate pair ID
-   */
-  private generatePairId(tokenA: string, tokenB: string, chainId: number): string {
-    const [token0, token1] = [tokenA.toLowerCase(), tokenB.toLowerCase()].sort();
-    return `${chainId}-${token0}-${token1}`;
-  }
-
-  /**
-   * Add address to favorites
-   */
-  addAddress(address: string, label: string, chainId?: number): void {
-    // Check if already exists
-    if (this.isAddressFavorite(address, chainId)) {
-      return;
-    }
-
-    this.addresses.unshift({
-      address: address.toLowerCase(),
-      label,
-      chainId,
-      addedAt: new Date(),
-    });
-
-    this.saveData();
-    this.notifyListeners();
-  }
-
-  /**
-   * Remove address from favorites
-   */
-  removeAddress(address: string, chainId?: number): void {
-    this.addresses = this.addresses.filter(
-      (addr) =>
-        !(
-          addr.address.toLowerCase() === address.toLowerCase() &&
-          (chainId === undefined || addr.chainId === chainId)
-        )
-    );
-
-    this.saveData();
-    this.notifyListeners();
-  }
-
-  /**
-   * Update address label
-   */
-  updateAddressLabel(address: string, label: string, chainId?: number): void {
-    const addr = this.addresses.find(
-      (a) =>
-        a.address.toLowerCase() === address.toLowerCase() &&
-        (chainId === undefined || a.chainId === chainId)
-    );
-
-    if (addr) {
-      addr.label = label;
-      this.saveData();
-      this.notifyListeners();
-    }
-  }
-
-  /**
-   * Check if address is favorite
-   */
-  isAddressFavorite(address: string, chainId?: number): boolean {
-    return this.addresses.some(
-      (addr) =>
-        addr.address.toLowerCase() === address.toLowerCase() &&
-        (chainId === undefined || addr.chainId === chainId)
+  getAllTokens(): FavoriteToken[] {
+    return Array.from(this.tokens.values()).sort(
+      (a, b) => b.addedAt.getTime() - a.addedAt.getTime()
     );
   }
 
   /**
-   * Get address label
+   * Get favorite tokens by chain
    */
-  getAddressLabel(address: string, chainId?: number): string | undefined {
-    const addr = this.addresses.find(
-      (a) =>
-        a.address.toLowerCase() === address.toLowerCase() &&
-        (chainId === undefined || a.chainId === chainId)
-    );
-    return addr?.label;
-  }
-
-  /**
-   * Get all favorite addresses
-   */
-  getFavoriteAddresses(chainId?: number): FavoriteAddress[] {
-    if (chainId !== undefined) {
-      return this.addresses.filter((addr) => addr.chainId === chainId);
-    }
-    return [...this.addresses];
+  getTokensByChain(chainId: number): FavoriteToken[] {
+    return this.getAllTokens().filter((token) => token.chainId === chainId);
   }
 
   /**
    * Search favorite tokens
    */
-  searchTokens(query: string, chainId?: number): FavoriteToken[] {
+  searchTokens(query: string): FavoriteToken[] {
     const lowerQuery = query.toLowerCase();
-    let tokens = this.tokens;
-
-    if (chainId !== undefined) {
-      tokens = tokens.filter((token) => token.chainId === chainId);
-    }
-
-    return tokens.filter(
+    return this.getAllTokens().filter(
       (token) =>
         token.symbol.toLowerCase().includes(lowerQuery) ||
         token.name.toLowerCase().includes(lowerQuery) ||
@@ -310,192 +185,242 @@ export class FavoritesManager {
   }
 
   /**
-   * Search favorite addresses
+   * Add a trading pair to favorites
    */
-  searchAddresses(query: string, chainId?: number): FavoriteAddress[] {
-    const lowerQuery = query.toLowerCase();
-    let addresses = this.addresses;
+  addPair(
+    tokenIn: string,
+    tokenOut: string,
+    tokenInSymbol: string,
+    tokenOutSymbol: string
+  ): string {
+    const id = `${tokenIn.toLowerCase()}-${tokenOut.toLowerCase()}`;
 
-    if (chainId !== undefined) {
-      addresses = addresses.filter((addr) => addr.chainId === chainId);
+    if (this.pairs.has(id)) {
+      logger.info(`Pair ${tokenInSymbol}/${tokenOutSymbol} already in favorites`);
+      return id;
     }
 
-    return addresses.filter(
-      (addr) =>
-        addr.label.toLowerCase().includes(lowerQuery) ||
-        addr.address.toLowerCase().includes(lowerQuery)
+    if (this.pairs.size >= MAX_FAVORITES) {
+      throw new Error('Maximum number of favorite pairs reached');
+    }
+
+    const pair: FavoritePair = {
+      id,
+      tokenIn: tokenIn.toLowerCase(),
+      tokenOut: tokenOut.toLowerCase(),
+      tokenInSymbol,
+      tokenOutSymbol,
+      addedAt: new Date(),
+      tradeCount: 0,
+    };
+
+    this.pairs.set(id, pair);
+    this.saveData();
+    this.notifyListeners();
+
+    logger.info(`Pair ${tokenInSymbol}/${tokenOutSymbol} added to favorites`);
+    return id;
+  }
+
+  /**
+   * Remove a trading pair from favorites
+   */
+  removePair(id: string): boolean {
+    const removed = this.pairs.delete(id);
+
+    if (removed) {
+      this.saveData();
+      this.notifyListeners();
+      logger.info(`Pair ${id} removed from favorites`);
+    }
+
+    return removed;
+  }
+
+  /**
+   * Check if a pair is favorited
+   */
+  isPairFavorited(tokenIn: string, tokenOut: string): boolean {
+    const id = `${tokenIn.toLowerCase()}-${tokenOut.toLowerCase()}`;
+    return this.pairs.has(id);
+  }
+
+  /**
+   * Update pair trade statistics
+   */
+  recordPairTrade(tokenIn: string, tokenOut: string): void {
+    const id = `${tokenIn.toLowerCase()}-${tokenOut.toLowerCase()}`;
+    const pair = this.pairs.get(id);
+
+    if (pair) {
+      pair.tradeCount++;
+      pair.lastTraded = new Date();
+      this.saveData();
+      this.notifyListeners();
+    }
+  }
+
+  /**
+   * Get all favorite pairs
+   */
+  getAllPairs(): FavoritePair[] {
+    return Array.from(this.pairs.values()).sort(
+      (a, b) => b.addedAt.getTime() - a.addedAt.getTime()
     );
   }
 
   /**
-   * Get recent favorites
+   * Get most traded pairs
    */
-  getRecentTokens(limit: number = 5, chainId?: number): FavoriteToken[] {
-    let tokens = this.tokens;
-
-    if (chainId !== undefined) {
-      tokens = tokens.filter((token) => token.chainId === chainId);
-    }
-
-    return tokens.slice(0, limit);
+  getMostTradedPairs(limit: number = 10): FavoritePair[] {
+    return this.getAllPairs()
+      .sort((a, b) => b.tradeCount - a.tradeCount)
+      .slice(0, limit);
   }
 
   /**
-   * Get recent pairs
+   * Get recently traded pairs
    */
-  getRecentPairs(limit: number = 5, chainId?: number): FavoritePair[] {
-    let pairs = this.pairs;
+  getRecentlyTradedPairs(limit: number = 10): FavoritePair[] {
+    return this.getAllPairs()
+      .filter((pair) => pair.lastTraded)
+      .sort((a, b) => {
+        if (!a.lastTraded || !b.lastTraded) return 0;
+        return b.lastTraded.getTime() - a.lastTraded.getTime();
+      })
+      .slice(0, limit);
+  }
 
-    if (chainId !== undefined) {
-      pairs = pairs.filter((pair) => pair.chainId === chainId);
+  /**
+   * Search favorite pairs
+   */
+  searchPairs(query: string): FavoritePair[] {
+    const lowerQuery = query.toLowerCase();
+    return this.getAllPairs().filter(
+      (pair) =>
+        pair.tokenInSymbol.toLowerCase().includes(lowerQuery) ||
+        pair.tokenOutSymbol.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  /**
+   * Get pairs involving a specific token
+   */
+  getPairsByToken(tokenAddress: string): FavoritePair[] {
+    const lowerAddress = tokenAddress.toLowerCase();
+    return this.getAllPairs().filter(
+      (pair) => pair.tokenIn === lowerAddress || pair.tokenOut === lowerAddress
+    );
+  }
+
+  /**
+   * Import favorites from JSON
+   */
+  importFavorites(data: { tokens?: FavoriteToken[]; pairs?: FavoritePair[] }): void {
+    try {
+      if (data.tokens && Array.isArray(data.tokens)) {
+        data.tokens.forEach((token) => {
+          if (!this.tokens.has(token.id) && this.tokens.size < MAX_FAVORITES) {
+            this.tokens.set(token.id, {
+              ...token,
+              addedAt: new Date(token.addedAt),
+            });
+          }
+        });
+      }
+
+      if (data.pairs && Array.isArray(data.pairs)) {
+        data.pairs.forEach((pair) => {
+          if (!this.pairs.has(pair.id) && this.pairs.size < MAX_FAVORITES) {
+            this.pairs.set(pair.id, {
+              ...pair,
+              addedAt: new Date(pair.addedAt),
+              lastTraded: pair.lastTraded ? new Date(pair.lastTraded) : undefined,
+            });
+          }
+        });
+      }
+
+      this.saveData();
+      this.notifyListeners();
+      logger.info('Favorites imported successfully');
+    } catch (error) {
+      logger.error('Failed to import favorites:', error);
+      throw error;
     }
+  }
 
-    return pairs.slice(0, limit);
+  /**
+   * Export favorites to JSON
+   */
+  exportFavorites(): { tokens: FavoriteToken[]; pairs: FavoritePair[] } {
+    return {
+      tokens: this.getAllTokens(),
+      pairs: this.getAllPairs(),
+    };
   }
 
   /**
    * Clear all favorites
    */
   clearAll(): void {
-    this.tokens = [];
-    this.pairs = [];
-    this.addresses = [];
+    this.tokens.clear();
+    this.pairs.clear();
     this.saveData();
     this.notifyListeners();
+    logger.info('All favorites cleared');
   }
 
   /**
-   * Clear tokens
+   * Clear all tokens
    */
-  clearTokens(chainId?: number): void {
-    if (chainId !== undefined) {
-      this.tokens = this.tokens.filter((token) => token.chainId !== chainId);
-    } else {
-      this.tokens = [];
-    }
+  clearTokens(): void {
+    this.tokens.clear();
     this.saveData();
     this.notifyListeners();
+    logger.info('All favorite tokens cleared');
   }
 
   /**
-   * Clear pairs
+   * Clear all pairs
    */
-  clearPairs(chainId?: number): void {
-    if (chainId !== undefined) {
-      this.pairs = this.pairs.filter((pair) => pair.chainId !== chainId);
-    } else {
-      this.pairs = [];
-    }
+  clearPairs(): void {
+    this.pairs.clear();
     this.saveData();
     this.notifyListeners();
-  }
-
-  /**
-   * Clear addresses
-   */
-  clearAddresses(chainId?: number): void {
-    if (chainId !== undefined) {
-      this.addresses = this.addresses.filter((addr) => addr.chainId !== chainId);
-    } else {
-      this.addresses = [];
-    }
-    this.saveData();
-    this.notifyListeners();
+    logger.info('All favorite pairs cleared');
   }
 
   /**
    * Get statistics
    */
-  getStats(): {
+  getStatistics(): {
     totalTokens: number;
     totalPairs: number;
-    totalAddresses: number;
-    byChain: Record<number, { tokens: number; pairs: number; addresses: number }>;
+    totalTrades: number;
+    mostTradedPair?: FavoritePair;
+    recentlyAdded: { tokens: number; pairs: number };
   } {
-    const byChain: Record<number, { tokens: number; pairs: number; addresses: number }> = {};
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    this.tokens.forEach((token) => {
-      if (!byChain[token.chainId]) {
-        byChain[token.chainId] = { tokens: 0, pairs: 0, addresses: 0 };
-      }
-      byChain[token.chainId].tokens++;
-    });
+    const recentTokens = this.getAllTokens().filter((t) => t.addedAt > oneDayAgo).length;
+    const recentPairs = this.getAllPairs().filter((p) => p.addedAt > oneDayAgo).length;
 
-    this.pairs.forEach((pair) => {
-      if (!byChain[pair.chainId]) {
-        byChain[pair.chainId] = { tokens: 0, pairs: 0, addresses: 0 };
-      }
-      byChain[pair.chainId].pairs++;
-    });
+    const totalTrades = this.getAllPairs().reduce((sum, pair) => sum + pair.tradeCount, 0);
 
-    this.addresses.forEach((addr) => {
-      if (addr.chainId !== undefined) {
-        if (!byChain[addr.chainId]) {
-          byChain[addr.chainId] = { tokens: 0, pairs: 0, addresses: 0 };
-        }
-        byChain[addr.chainId].addresses++;
-      }
-    });
+    const mostTraded = this.getMostTradedPairs(1)[0];
 
     return {
-      totalTokens: this.tokens.length,
-      totalPairs: this.pairs.length,
-      totalAddresses: this.addresses.length,
-      byChain,
+      totalTokens: this.tokens.size,
+      totalPairs: this.pairs.size,
+      totalTrades,
+      mostTradedPair: mostTraded,
+      recentlyAdded: {
+        tokens: recentTokens,
+        pairs: recentPairs,
+      },
     };
-  }
-
-  /**
-   * Export favorites
-   */
-  export(): {
-    tokens: FavoriteToken[];
-    pairs: FavoritePair[];
-    addresses: FavoriteAddress[];
-  } {
-    return {
-      tokens: this.tokens,
-      pairs: this.pairs,
-      addresses: this.addresses,
-    };
-  }
-
-  /**
-   * Import favorites
-   */
-  import(data: {
-    tokens?: FavoriteToken[];
-    pairs?: FavoritePair[];
-    addresses?: FavoriteAddress[];
-  }): void {
-    try {
-      if (data.tokens && Array.isArray(data.tokens)) {
-        this.tokens = data.tokens.map((token) => ({
-          ...token,
-          addedAt: new Date(token.addedAt),
-        }));
-      }
-
-      if (data.pairs && Array.isArray(data.pairs)) {
-        this.pairs = data.pairs.map((pair) => ({
-          ...pair,
-          addedAt: new Date(pair.addedAt),
-        }));
-      }
-
-      if (data.addresses && Array.isArray(data.addresses)) {
-        this.addresses = data.addresses.map((addr) => ({
-          ...addr,
-          addedAt: new Date(addr.addedAt),
-        }));
-      }
-
-      this.saveData();
-      this.notifyListeners();
-    } catch (error) {
-      logger.error('Error importing favorites:', error);
-      throw new Error('Failed to import favorites');
-    }
   }
 
   /**
@@ -503,9 +428,7 @@ export class FavoritesManager {
    */
   subscribe(callback: () => void): () => void {
     this.listeners.add(callback);
-    return () => {
-      this.listeners.delete(callback);
-    };
+    return () => this.listeners.delete(callback);
   }
 
   /**
@@ -520,7 +443,34 @@ export class FavoritesManager {
       }
     });
   }
+
+  /**
+   * Merge favorites from another source
+   */
+  mergeFavorites(other: { tokens: FavoriteToken[]; pairs: FavoritePair[] }): void {
+    let added = 0;
+
+    other.tokens.forEach((token) => {
+      if (!this.tokens.has(token.id) && this.tokens.size < MAX_FAVORITES) {
+        this.tokens.set(token.id, token);
+        added++;
+      }
+    });
+
+    other.pairs.forEach((pair) => {
+      if (!this.pairs.has(pair.id) && this.pairs.size < MAX_FAVORITES) {
+        this.pairs.set(pair.id, pair);
+        added++;
+      }
+    });
+
+    if (added > 0) {
+      this.saveData();
+      this.notifyListeners();
+      logger.info(`Merged ${added} favorites`);
+    }
+  }
 }
 
 // Singleton instance
-export const favoritesManager = new FavoritesManager();
+export const favoritesManager = FavoritesManager.getInstance(StorageManager.getInstance());
