@@ -1,76 +1,45 @@
 /**
  * URL Utilities
- * Helper functions for URL parsing and manipulation
+ * Helper functions for URL parsing, validation, and manipulation
  */
 
 /**
- * Parse query string to object
+ * Parse query parameters from URL string
  */
-export function parseQueryString(queryString: string): Record<string, string> {
-  const params: Record<string, string> = {};
+export function parseQueryParams(url: string): Record<string, string> {
+  try {
+    const urlObj = new URL(url);
+    const params: Record<string, string> = {};
 
-  if (!queryString) {
+    urlObj.searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+
     return params;
+  } catch {
+    return {};
   }
-
-  // Remove leading ? if present
-  const cleanQuery = queryString.startsWith('?') ? queryString.slice(1) : queryString;
-
-  cleanQuery.split('&').forEach((param) => {
-    const [key, value] = param.split('=');
-    if (key) {
-      params[decodeURIComponent(key)] = value ? decodeURIComponent(value) : '';
-    }
-  });
-
-  return params;
 }
 
 /**
- * Build query string from object
+ * Build URL with query parameters
  */
-export function buildQueryString(params: Record<string, string | number | boolean>): string {
-  const entries = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null)
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
-
-  return entries.length > 0 ? `?${entries.join('&')}` : '';
-}
-
-/**
- * Add query parameters to URL
- */
-export function addQueryParams(
-  url: string,
+export function buildUrl(
+  baseUrl: string,
   params: Record<string, string | number | boolean>
 ): string {
-  const queryString = buildQueryString(params);
-  const separator = url.includes('?') ? '&' : '';
-  return `${url}${separator}${queryString.replace('?', '')}`;
-}
-
-/**
- * Get query parameter from URL
- */
-export function getQueryParam(url: string, param: string): string | null {
   try {
-    const urlObj = new URL(url);
-    return urlObj.searchParams.get(param);
-  } catch {
-    return null;
-  }
-}
+    const url = new URL(baseUrl);
 
-/**
- * Remove query parameter from URL
- */
-export function removeQueryParam(url: string, param: string): string {
-  try {
-    const urlObj = new URL(url);
-    urlObj.searchParams.delete(param);
-    return urlObj.toString();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        url.searchParams.set(key, String(value));
+      }
+    });
+
+    return url.toString();
   } catch {
-    return url;
+    return baseUrl;
   }
 }
 
@@ -87,9 +56,9 @@ export function isValidUrl(url: string): boolean {
 }
 
 /**
- * Get domain from URL
+ * Extract domain from URL
  */
-export function getDomain(url: string): string | null {
+export function extractDomain(url: string): string | null {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
@@ -99,9 +68,9 @@ export function getDomain(url: string): string | null {
 }
 
 /**
- * Get path from URL
+ * Extract path from URL
  */
-export function getPath(url: string): string | null {
+export function extractPath(url: string): string | null {
   try {
     const urlObj = new URL(url);
     return urlObj.pathname;
@@ -111,142 +80,142 @@ export function getPath(url: string): string | null {
 }
 
 /**
+ * Add or update query parameter
+ */
+export function setQueryParam(url: string, key: string, value: string): string {
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set(key, value);
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Remove query parameter
+ */
+export function removeQueryParam(url: string, key: string): string {
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.delete(key);
+    return urlObj.toString();
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Check if URL is HTTP/HTTPS
+ */
+export function isHttpUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if URL is localhost
+ */
+export function isLocalhost(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return (
+      urlObj.hostname === 'localhost' ||
+      urlObj.hostname === '127.0.0.1' ||
+      urlObj.hostname === '::1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Normalize URL (remove trailing slash, lowercase protocol/domain)
+ */
+export function normalizeUrl(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    let normalized = `${urlObj.protocol.toLowerCase()}//${urlObj.hostname.toLowerCase()}`;
+
+    if (urlObj.port) {
+      normalized += `:${urlObj.port}`;
+    }
+
+    normalized += urlObj.pathname.replace(/\/$/, '');
+
+    if (urlObj.search) {
+      normalized += urlObj.search;
+    }
+
+    if (urlObj.hash) {
+      normalized += urlObj.hash;
+    }
+
+    return normalized;
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Join URL paths
  */
 export function joinPaths(...paths: string[]): string {
   return paths
     .map((path, index) => {
-      // Remove leading slash from all but first
-      if (index > 0 && path.startsWith('/')) {
-        path = path.slice(1);
+      if (index === 0) {
+        return path.replace(/\/$/, '');
       }
-      // Remove trailing slash from all but last
-      if (index < paths.length - 1 && path.endsWith('/')) {
-        path = path.slice(0, -1);
-      }
-      return path;
+      return path.replace(/^\/|\/$/g, '');
     })
-    .filter((path) => path.length > 0)
+    .filter(Boolean)
     .join('/');
 }
 
 /**
- * Sanitize URL for display
+ * Get file extension from URL
  */
-export function sanitizeUrl(url: string, maxLength: number = 50): string {
-  if (url.length <= maxLength) {
-    return url;
-  }
-
+export function getFileExtension(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    const domain = urlObj.hostname;
-    const path = urlObj.pathname;
-
-    if (domain.length + path.length <= maxLength) {
-      return `${domain}${path}`;
-    }
-
-    const truncatedPath = path.slice(0, maxLength - domain.length - 3) + '...';
-    return `${domain}${truncatedPath}`;
-  } catch {
-    return url.slice(0, maxLength - 3) + '...';
-  }
-}
-
-/**
- * Check if URL is absolute
- */
-export function isAbsoluteUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
-}
-
-/**
- * Convert relative URL to absolute
- */
-export function toAbsoluteUrl(url: string, baseUrl: string): string {
-  if (isAbsoluteUrl(url)) {
-    return url;
-  }
-
-  try {
-    return new URL(url, baseUrl).toString();
-  } catch {
-    return url;
-  }
-}
-
-/**
- * Extract hash from URL
- */
-export function getHash(url: string): string | null {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hash ? urlObj.hash.slice(1) : null;
+    const pathname = urlObj.pathname;
+    const match = pathname.match(/\.([a-zA-Z0-9]+)$/);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Build blockchain explorer URL
+ * Check if URL points to an image
  */
-export function buildExplorerUrl(
-  type: 'address' | 'tx' | 'token' | 'block',
-  value: string,
-  network: 'ethereum' | 'polygon' | 'bsc' | 'arbitrum' = 'ethereum'
-): string {
-  const explorers: Record<string, string> = {
-    ethereum: 'https://etherscan.io',
-    polygon: 'https://polygonscan.com',
-    bsc: 'https://bscscan.com',
-    arbitrum: 'https://arbiscan.io',
-  };
-
-  const baseUrl = explorers[network] || explorers.ethereum;
-
-  switch (type) {
-    case 'address':
-      return `${baseUrl}/address/${value}`;
-    case 'tx':
-      return `${baseUrl}/tx/${value}`;
-    case 'token':
-      return `${baseUrl}/token/${value}`;
-    case 'block':
-      return `${baseUrl}/block/${value}`;
-    default:
-      return baseUrl;
-  }
+export function isImageUrl(url: string): boolean {
+  const extension = getFileExtension(url);
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'];
+  return extension ? imageExtensions.includes(extension.toLowerCase()) : false;
 }
 
 /**
- * Shorten URL for display
+ * Sanitize URL for display (remove sensitive params)
  */
-export function shortenUrl(url: string): string {
+export function sanitizeUrl(
+  url: string,
+  sensitiveParams: string[] = ['token', 'key', 'secret']
+): string {
   try {
     const urlObj = new URL(url);
-    return `${urlObj.hostname}${urlObj.pathname !== '/' ? '/...' : ''}`;
+    sensitiveParams.forEach((param) => {
+      if (urlObj.searchParams.has(param)) {
+        urlObj.searchParams.set(param, '***');
+      }
+    });
+    return urlObj.toString();
   } catch {
     return url;
-  }
-}
-
-/**
- * Check if URLs match (ignoring query params and hash)
- */
-export function urlsMatch(url1: string, url2: string): boolean {
-  try {
-    const obj1 = new URL(url1);
-    const obj2 = new URL(url2);
-
-    return (
-      obj1.protocol === obj2.protocol &&
-      obj1.hostname === obj2.hostname &&
-      obj1.pathname === obj2.pathname &&
-      obj1.port === obj2.port
-    );
-  } catch {
-    return false;
   }
 }
 
