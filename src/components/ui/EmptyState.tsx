@@ -1,29 +1,40 @@
 /**
- * Empty state component
+ * EmptyState - Empty state component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text } from 'react-native';
 
-import type { ReactNode } from 'react';
+import { Button } from './Button';
 
-interface EmptyStateProps {
-  icon?: ReactNode;
+export interface EmptyStateProps {
   title: string;
   description?: string;
-  action?: ReactNode;
+  icon?: React.ReactNode;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, className = '' }: EmptyStateProps) {
+export function EmptyState({ title, description, icon, action, className = '' }: EmptyStateProps) {
   return (
-    <div className={`flex flex-col items-center justify-center text-center p-8 ${className}`}>
-      {icon && <div className="mb-4 text-gray-400 dark:text-gray-600">{icon}</div>}
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
+    <View className={`flex items-center justify-center py-12 px-4 ${className}`}>
+      {icon && <View className="mb-4">{icon}</View>}
+
+      <Text className="text-xl font-semibold text-gray-900 text-center mb-2">{title}</Text>
+
       {description && (
-        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">{description}</p>
+        <Text className="text-gray-500 text-center mb-6 max-w-md">{description}</Text>
       )}
-      {action && <div>{action}</div>}
-    </div>
+
+      {action && (
+        <Button onPress={action.onClick} variant="primary">
+          {action.label}
+        </Button>
+      )}
+    </View>
   );
 }
