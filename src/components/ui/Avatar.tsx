@@ -1,53 +1,77 @@
 /**
- * Avatar component
+ * Avatar - User avatar component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text, Image } from 'react-native';
 
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-
-interface AvatarProps {
+export interface AvatarProps {
   src?: string;
   alt?: string;
+  fallback?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  fallback?: ReactNode;
   className?: string;
 }
 
-export function Avatar({ src, alt = '', size = 'md', fallback, className = '' }: AvatarProps) {
-  const [imageError, setImageError] = useState(false);
-
-  const sizeClasses = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-12 h-12 text-base',
-    xl: 'w-16 h-16 text-lg',
-  };
-
-  const baseClasses = `rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden ${sizeClasses[size]} ${className}`;
-
-  if (!src || imageError) {
-    return (
-      <div className={baseClasses}>
-        {fallback || (
-          <span className="text-gray-600 dark:text-gray-300 font-medium">
-            {alt.charAt(0).toUpperCase()}
-          </span>
-        )}
-      </div>
-    );
-  }
+export function Avatar({ src, alt, fallback, size = 'md', className = '' }: AvatarProps) {
+  const initials = fallback || alt?.substring(0, 2).toUpperCase() || '?';
 
   return (
-    <div className={baseClasses}>
-      <img
-        src={src}
-        alt={alt}
-        className="w-full h-full object-cover"
-        onError={() => setImageError(true)}
-      />
-    </div>
+    <View
+      className={`
+        ${getSizeStyles(size)}
+        rounded-full
+        bg-indigo-100
+        items-center
+        justify-center
+        overflow-hidden
+        ${className}
+      `}
+    >
+      {src ? (
+        <Image source={{ uri: src }} className="w-full h-full" resizeMode="cover" />
+      ) : (
+        <Text
+          className={`
+            ${getTextSizeStyles(size)}
+            font-semibold
+            text-indigo-600
+          `}
+        >
+          {initials}
+        </Text>
+      )}
+    </View>
   );
+}
+
+function getSizeStyles(size: AvatarProps['size']): string {
+  switch (size) {
+    case 'sm':
+      return 'w-8 h-8';
+    case 'md':
+      return 'w-10 h-10';
+    case 'lg':
+      return 'w-12 h-12';
+    case 'xl':
+      return 'w-16 h-16';
+    default:
+      return 'w-10 h-10';
+  }
+}
+
+function getTextSizeStyles(size: AvatarProps['size']): string {
+  switch (size) {
+    case 'sm':
+      return 'text-xs';
+    case 'md':
+      return 'text-sm';
+    case 'lg':
+      return 'text-base';
+    case 'xl':
+      return 'text-xl';
+    default:
+      return 'text-sm';
+  }
 }
