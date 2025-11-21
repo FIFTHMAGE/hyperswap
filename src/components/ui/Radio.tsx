@@ -1,47 +1,54 @@
 /**
- * Radio button component
+ * Radio - Radio button component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text, Pressable } from 'react-native';
 
-import type { ChangeEvent } from 'react';
-
-interface RadioProps {
-  name: string;
+export interface RadioOption {
   value: string;
-  checked?: boolean;
-  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
-  label?: string;
+  label: string;
+}
+
+export interface RadioProps {
+  options: RadioOption[];
+  value: string;
+  onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
 }
 
-export function Radio({
-  name,
-  value,
-  checked = false,
-  onChange,
-  label,
-  disabled = false,
-  className = '',
-}: RadioProps) {
+export function Radio({ options, value, onChange, disabled = false, className = '' }: RadioProps) {
   return (
-    <label
-      className={`inline-flex items-center cursor-pointer ${
-        disabled ? 'opacity-50 cursor-not-allowed' : ''
-      } ${className}`}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={value}
-        checked={checked}
-        onChange={onChange}
-        disabled={disabled}
-        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
-      />
-      {label && <span className="ml-2 text-sm text-gray-900 dark:text-white">{label}</span>}
-    </label>
+    <View className={className}>
+      {options.map((option) => (
+        <Pressable
+          key={option.value}
+          onPress={() => !disabled && onChange(option.value)}
+          disabled={disabled}
+          className="flex-row items-center mb-2"
+        >
+          <View
+            className={`
+              w-5
+              h-5
+              rounded-full
+              border-2
+              ${value === option.value ? 'border-indigo-600' : 'border-gray-300'}
+              ${disabled ? 'opacity-50' : ''}
+              items-center
+              justify-center
+            `}
+          >
+            {value === option.value && <View className="w-3 h-3 rounded-full bg-indigo-600" />}
+          </View>
+
+          <Text className={`ml-2 text-gray-900 ${disabled ? 'opacity-50' : ''}`}>
+            {option.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
