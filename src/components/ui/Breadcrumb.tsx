@@ -1,18 +1,18 @@
 /**
- * Breadcrumb component
+ * Breadcrumb - Navigation breadcrumb component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View, Text, Pressable } from 'react-native';
 
-import Link from 'next/link';
-
-interface BreadcrumbItem {
+export interface BreadcrumbItem {
   label: string;
   href?: string;
+  onClick?: () => void;
 }
 
-interface BreadcrumbProps {
+export interface BreadcrumbProps {
   items: BreadcrumbItem[];
   separator?: string;
   className?: string;
@@ -20,22 +20,32 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ items, separator = '/', className = '' }: BreadcrumbProps) {
   return (
-    <nav className={`flex items-center gap-2 text-sm ${className}`}>
-      {items.map((item, index) => (
-        <div key={index} className="flex items-center gap-2">
-          {item.href ? (
-            <Link href={item.href} className="text-blue-600 dark:text-blue-400 hover:underline">
-              {item.label}
-            </Link>
-          ) : (
-            <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
-          )}
+    <View className={`flex-row items-center flex-wrap ${className}`}>
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
 
-          {index < items.length - 1 && (
-            <span className="text-gray-400 dark:text-gray-600">{separator}</span>
-          )}
-        </div>
-      ))}
-    </nav>
+        return (
+          <View key={index} className="flex-row items-center">
+            {item.onClick ? (
+              <Pressable onPress={item.onClick}>
+                <Text
+                  className={`
+                    ${isLast ? 'text-gray-900 font-medium' : 'text-indigo-600 hover:text-indigo-700'}
+                  `}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ) : (
+              <Text className={isLast ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                {item.label}
+              </Text>
+            )}
+
+            {!isLast && <Text className="mx-2 text-gray-400">{separator}</Text>}
+          </View>
+        );
+      })}
+    </View>
   );
 }
