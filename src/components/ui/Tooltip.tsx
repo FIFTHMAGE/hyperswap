@@ -1,41 +1,58 @@
 /**
- * Tooltip component
+ * Tooltip - Tooltip component
  * @module components/ui
  */
 
-'use client';
+import React, { useState } from 'react';
+import { View, Text, Pressable } from 'react-native';
 
-import { useState, type ReactNode } from 'react';
-
-interface TooltipProps {
-  children: ReactNode;
+export interface TooltipProps {
+  children: React.ReactNode;
   content: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
 }
 
 export function Tooltip({ children, content, position = 'top', className = '' }: TooltipProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  const positions = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  };
+  const [visible, setVisible] = useState(false);
 
   return (
-    <div className={`relative inline-block ${className}`}>
-      <div onMouseEnter={() => setIsVisible(true)} onMouseLeave={() => setIsVisible(false)}>
+    <View className={`relative ${className}`}>
+      <Pressable onPressIn={() => setVisible(true)} onPressOut={() => setVisible(false)}>
         {children}
-      </div>
-      {isVisible && (
-        <div
-          className={`absolute z-50 px-2 py-1 text-sm text-white bg-gray-900 rounded shadow-lg whitespace-nowrap ${positions[position]}`}
+      </Pressable>
+
+      {visible && (
+        <View
+          className={`
+            absolute
+            bg-gray-900
+            text-white
+            px-3
+            py-2
+            rounded-lg
+            z-50
+            ${getPositionStyles(position)}
+          `}
         >
-          {content}
-        </div>
+          <Text className="text-white text-xs whitespace-nowrap">{content}</Text>
+        </View>
       )}
-    </div>
+    </View>
   );
+}
+
+function getPositionStyles(position: TooltipProps['position']): string {
+  switch (position) {
+    case 'top':
+      return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+    case 'bottom':
+      return 'top-full left-1/2 -translate-x-1/2 mt-2';
+    case 'left':
+      return 'right-full top-1/2 -translate-y-1/2 mr-2';
+    case 'right':
+      return 'left-full top-1/2 -translate-y-1/2 ml-2';
+    default:
+      return 'bottom-full left-1/2 -translate-x-1/2 mb-2';
+  }
 }
