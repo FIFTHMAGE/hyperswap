@@ -1,125 +1,136 @@
 /**
  * Bridge Manager
- * Handles cross-chain token transfers and bridge operations
+ * Handles cross-chain token bridging operations
  */
-
-import { ethers } from 'ethers';
 
 import logger from '../../utils/logger';
 import { StorageManager } from '../storage/StorageManager';
 
-export interface BridgeRoute {
-  id: string;
+export enum BridgeStatus {
+  PENDING = 'pending',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
+
+export interface SupportedChain {
+  chainId: number;
   name: string;
-  fromChain: number;
-  toChain: number;
-  token: string;
-  minAmount: string;
-  maxAmount: string;
-  estimatedTime: number; // in minutes
-  fee: string;
-  feeType: 'fixed' | 'percentage';
-  enabled: boolean;
+  rpcUrl: string;
+  explorerUrl: string;
+  bridgeContractAddress: string;
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
 }
 
 export interface BridgeTransaction {
   id: string;
-  route: BridgeRoute;
+  sourceChain: number;
+  destinationChain: number;
+  token: string;
   amount: string;
-  fromAddress: string;
-  toAddress: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  sender: string;
+  recipient: string;
+  status: BridgeStatus;
   sourceTxHash?: string;
   destinationTxHash?: string;
+  estimatedTime: number; // minutes
+  fee: string;
   createdAt: Date;
+  updatedAt: Date;
   completedAt?: Date;
-  estimatedArrival?: Date;
-  metadata?: Record<string, unknown>;
 }
 
-const STORAGE_KEY = 'bridge_transactions';
-const MAX_TRANSACTIONS = 500;
+const STORAGE_KEY = 'hyperswap_bridge_transactions';
+const MAX_TRANSACTIONS = 50;
+
+const SUPPORTED_CHAINS: SupportedChain[] = [
+  {
+    chainId: 1,
+    name: 'Ethereum',
+    rpcUrl: 'https://eth.llamarpc.com',
+    explorerUrl: 'https://etherscan.io',
+    bridgeContractAddress: '0x0000000000000000000000000000000000000001',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  {
+    chainId: 137,
+    name: 'Polygon',
+    rpcUrl: 'https://polygon-rpc.com',
+    explorerUrl: 'https://polygonscan.com',
+    bridgeContractAddress: '0x0000000000000000000000000000000000000002',
+    nativeCurrency: {
+      name: 'MATIC',
+      symbol: 'MATIC',
+      decimals: 18,
+    },
+  },
+  {
+    chainId: 56,
+    name: 'BSC',
+    rpcUrl: 'https://bsc-dataseed.binance.org',
+    explorerUrl: 'https://bscscan.com',
+    bridgeContractAddress: '0x0000000000000000000000000000000000000003',
+    nativeCurrency: {
+      name: 'BNB',
+      symbol: 'BNB',
+      decimals: 18,
+    },
+  },
+  {
+    chainId: 42161,
+    name: 'Arbitrum',
+    rpcUrl: 'https://arb1.arbitrum.io/rpc',
+    explorerUrl: 'https://arbiscan.io',
+    bridgeContractAddress: '0x0000000000000000000000000000000000000004',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+  {
+    chainId: 10,
+    name: 'Optimism',
+    rpcUrl: 'https://mainnet.optimism.io',
+    explorerUrl: 'https://optimistic.etherscan.io',
+    bridgeContractAddress: '0x0000000000000000000000000000000000000005',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18,
+    },
+  },
+];
 
 export class BridgeManager {
-  private routes: Map<string, BridgeRoute> = new Map();
+  private static instance: BridgeManager;
   private transactions: BridgeTransaction[] = [];
   private storageManager: StorageManager;
   private listeners: Set<(transactions: BridgeTransaction[]) => void> = new Set();
+  private statusCheckInterval: NodeJS.Timeout | null = null;
 
-  constructor() {
-    this.storageManager = new StorageManager();
+  private constructor(storageManager: StorageManager) {
+    this.storageManager = storageManager;
     this.loadTransactions();
-    this.initializeRoutes();
+    logger.info('BridgeManager initialized.');
   }
 
-  /**
-   * Initialize bridge routes
-   */
-  private initializeRoutes(): void {
-    // Example routes - in production these would come from an API
-    const routes: BridgeRoute[] = [
-      {
-        id: 'eth-polygon-usdc',
-        name: 'Ethereum to Polygon (USDC)',
-        fromChain: 1,
-        toChain: 137,
-        token: 'USDC',
-        minAmount: '10',
-        maxAmount: '1000000',
-        estimatedTime: 7,
-        fee: '0.1',
-        feeType: 'percentage',
-        enabled: true,
-      },
-      {
-        id: 'polygon-eth-usdc',
-        name: 'Polygon to Ethereum (USDC)',
-        fromChain: 137,
-        toChain: 1,
-        token: 'USDC',
-        minAmount: '10',
-        maxAmount: '1000000',
-        estimatedTime: 15,
-        fee: '0.1',
-        feeType: 'percentage',
-        enabled: true,
-      },
-      {
-        id: 'eth-arbitrum-eth',
-        name: 'Ethereum to Arbitrum (ETH)',
-        fromChain: 1,
-        toChain: 42161,
-        token: 'ETH',
-        minAmount: '0.01',
-        maxAmount: '100',
-        estimatedTime: 10,
-        fee: '0.001',
-        feeType: 'fixed',
-        enabled: true,
-      },
-      {
-        id: 'arbitrum-eth-eth',
-        name: 'Arbitrum to Ethereum (ETH)',
-        fromChain: 42161,
-        toChain: 1,
-        token: 'ETH',
-        minAmount: '0.01',
-        maxAmount: '100',
-        estimatedTime: 420, // 7 hours due to challenge period
-        fee: '0.001',
-        feeType: 'fixed',
-        enabled: true,
-      },
-    ];
-
-    routes.forEach((route) => {
-      this.routes.set(route.id, route);
-    });
+  public static getInstance(storageManager: StorageManager): BridgeManager {
+    if (!BridgeManager.instance) {
+      BridgeManager.instance = new BridgeManager(storageManager);
+    }
+    return BridgeManager.instance;
   }
 
-  /**
-   * Load transactions from storage
-   */
   private loadTransactions(): void {
     try {
       const stored = this.storageManager.get<BridgeTransaction[]>(STORAGE_KEY);
@@ -127,190 +138,182 @@ export class BridgeManager {
         this.transactions = stored.map((tx) => ({
           ...tx,
           createdAt: new Date(tx.createdAt),
+          updatedAt: new Date(tx.updatedAt),
           completedAt: tx.completedAt ? new Date(tx.completedAt) : undefined,
-          estimatedArrival: tx.estimatedArrival ? new Date(tx.estimatedArrival) : undefined,
         }));
       }
     } catch (error) {
-      logger.error('Error loading bridge transactions:', error);
+      logger.error('Failed to load bridge transactions from storage:', error);
     }
   }
 
-  /**
-   * Save transactions to storage
-   */
   private saveTransactions(): void {
     try {
-      const toStore = this.transactions.slice(0, MAX_TRANSACTIONS);
-      this.storageManager.set(STORAGE_KEY, toStore);
+      const txToSave = this.transactions.slice(-MAX_TRANSACTIONS);
+      this.storageManager.set(STORAGE_KEY, txToSave);
+      logger.debug('Bridge transactions saved to storage.');
     } catch (error) {
-      logger.error('Error saving bridge transactions:', error);
+      logger.error('Failed to save bridge transactions to storage:', error);
     }
   }
 
   /**
-   * Get available routes
+   * Get supported chains
    */
-  getRoutes(fromChain?: number, toChain?: number, token?: string): BridgeRoute[] {
-    let routes = Array.from(this.routes.values()).filter((route) => route.enabled);
-
-    if (fromChain !== undefined) {
-      routes = routes.filter((route) => route.fromChain === fromChain);
-    }
-
-    if (toChain !== undefined) {
-      routes = routes.filter((route) => route.toChain === toChain);
-    }
-
-    if (token) {
-      routes = routes.filter((route) => route.token.toLowerCase() === token.toLowerCase());
-    }
-
-    return routes;
+  getSupportedChains(): SupportedChain[] {
+    return [...SUPPORTED_CHAINS];
   }
 
   /**
-   * Get route by ID
+   * Get chain by ID
    */
-  getRoute(routeId: string): BridgeRoute | undefined {
-    return this.routes.get(routeId);
+  getChainById(chainId: number): SupportedChain | undefined {
+    return SUPPORTED_CHAINS.find((chain) => chain.chainId === chainId);
+  }
+
+  /**
+   * Check if chain is supported
+   */
+  isChainSupported(chainId: number): boolean {
+    return SUPPORTED_CHAINS.some((chain) => chain.chainId === chainId);
   }
 
   /**
    * Calculate bridge fee
    */
-  calculateFee(routeId: string, amount: string): string {
-    const route = this.routes.get(routeId);
-    if (!route) {
-      throw new Error('Route not found');
-    }
+  calculateBridgeFee(sourceChain: number, destinationChain: number, amount: string): string {
+    // Base fee: 0.1% of amount
+    const baseFee = parseFloat(amount) * 0.001;
 
-    const amountBN = ethers.utils.parseEther(amount);
-    const feeBN =
-      route.feeType === 'percentage'
-        ? amountBN.mul(ethers.utils.parseEther(route.fee)).div(ethers.utils.parseEther('100'))
-        : ethers.utils.parseEther(route.fee);
+    // Chain-specific fees
+    let chainFee = 0;
+    if (sourceChain === 1) chainFee += 0.005; // Ethereum is more expensive
+    if (destinationChain === 1) chainFee += 0.005;
 
-    return ethers.utils.formatEther(feeBN);
+    const totalFee = baseFee + chainFee;
+    return totalFee.toFixed(6);
   }
 
   /**
-   * Calculate amount after fees
+   * Estimate bridge time
    */
-  calculateAmountAfterFee(routeId: string, amount: string): string {
-    const fee = this.calculateFee(routeId, amount);
-    const amountBN = ethers.utils.parseEther(amount);
-    const feeBN = ethers.utils.parseEther(fee);
+  estimateBridgeTime(sourceChain: number, destinationChain: number): number {
+    // Base time: 10 minutes
+    let time = 10;
 
-    return ethers.utils.formatEther(amountBN.sub(feeBN));
-  }
+    // Ethereum takes longer
+    if (sourceChain === 1) time += 5;
+    if (destinationChain === 1) time += 5;
 
-  /**
-   * Validate bridge amount
-   */
-  validateAmount(routeId: string, amount: string): { valid: boolean; error?: string } {
-    const route = this.routes.get(routeId);
-    if (!route) {
-      return { valid: false, error: 'Route not found' };
-    }
+    // Fast chains
+    if ([137, 42161, 10].includes(sourceChain)) time -= 3;
+    if ([137, 42161, 10].includes(destinationChain)) time -= 3;
 
-    const amountBN = ethers.utils.parseEther(amount);
-    const minBN = ethers.utils.parseEther(route.minAmount);
-    const maxBN = ethers.utils.parseEther(route.maxAmount);
-
-    if (amountBN.lt(minBN)) {
-      return { valid: false, error: `Amount below minimum (${route.minAmount})` };
-    }
-
-    if (amountBN.gt(maxBN)) {
-      return { valid: false, error: `Amount above maximum (${route.maxAmount})` };
-    }
-
-    return { valid: true };
+    return Math.max(time, 3); // Minimum 3 minutes
   }
 
   /**
    * Initiate bridge transaction
    */
   async initiateBridge(
-    routeId: string,
+    sourceChain: number,
+    destinationChain: number,
+    token: string,
     amount: string,
-    fromAddress: string,
-    toAddress: string,
-    executeBridge: (route: BridgeRoute, amount: string, toAddress: string) => Promise<string>
+    sender: string,
+    recipient: string
   ): Promise<string> {
-    const route = this.routes.get(routeId);
-    if (!route) {
-      throw new Error('Route not found');
+    if (!this.isChainSupported(sourceChain)) {
+      throw new Error(`Source chain ${sourceChain} is not supported`);
     }
 
-    // Validate amount
-    const validation = this.validateAmount(routeId, amount);
-    if (!validation.valid) {
-      throw new Error(validation.error);
+    if (!this.isChainSupported(destinationChain)) {
+      throw new Error(`Destination chain ${destinationChain} is not supported`);
     }
 
-    try {
-      // Execute bridge transaction
-      const sourceTxHash = await executeBridge(route, amount, toAddress);
-
-      // Create transaction record
-      const transaction: BridgeTransaction = {
-        id: this.generateId(),
-        route,
-        amount,
-        fromAddress,
-        toAddress,
-        status: 'pending',
-        sourceTxHash,
-        createdAt: new Date(),
-        estimatedArrival: new Date(Date.now() + route.estimatedTime * 60 * 1000),
-      };
-
-      this.transactions.unshift(transaction);
-      this.saveTransactions();
-      this.notifyListeners();
-
-      return transaction.id;
-    } catch (error) {
-      logger.error('Error initiating bridge:', error);
-      throw error;
+    if (sourceChain === destinationChain) {
+      throw new Error('Source and destination chains must be different');
     }
+
+    const fee = this.calculateBridgeFee(sourceChain, destinationChain, amount);
+    const estimatedTime = this.estimateBridgeTime(sourceChain, destinationChain);
+
+    const txId = crypto.randomUUID();
+    const now = new Date();
+
+    const transaction: BridgeTransaction = {
+      id: txId,
+      sourceChain,
+      destinationChain,
+      token,
+      amount,
+      sender,
+      recipient,
+      status: BridgeStatus.PENDING,
+      estimatedTime,
+      fee,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.transactions.unshift(transaction);
+    this.transactions = this.transactions.slice(0, MAX_TRANSACTIONS);
+    this.saveTransactions();
+    this.notifyListeners();
+
+    logger.info(`Bridge transaction initiated: ${txId} (${sourceChain} -> ${destinationChain})`);
+
+    return txId;
   }
 
   /**
    * Update transaction status
    */
-  updateTransactionStatus(
-    transactionId: string,
-    status: BridgeTransaction['status'],
-    destinationTxHash?: string
-  ): void {
-    const transaction = this.transactions.find((tx) => tx.id === transactionId);
+  updateTransaction(
+    txId: string,
+    updates: {
+      status?: BridgeStatus;
+      sourceTxHash?: string;
+      destinationTxHash?: string;
+      completedAt?: Date;
+    }
+  ): boolean {
+    const transaction = this.transactions.find((tx) => tx.id === txId);
+
     if (!transaction) {
-      logger.warn(`Transaction ${transactionId} not found`);
-      return;
+      logger.warn(`Bridge transaction ${txId} not found`);
+      return false;
     }
 
-    transaction.status = status;
-
-    if (destinationTxHash) {
-      transaction.destinationTxHash = destinationTxHash;
+    if (updates.status) {
+      transaction.status = updates.status;
     }
 
-    if (status === 'completed' || status === 'failed') {
-      transaction.completedAt = new Date();
+    if (updates.sourceTxHash) {
+      transaction.sourceTxHash = updates.sourceTxHash;
     }
 
+    if (updates.destinationTxHash) {
+      transaction.destinationTxHash = updates.destinationTxHash;
+    }
+
+    if (updates.completedAt) {
+      transaction.completedAt = updates.completedAt;
+    }
+
+    transaction.updatedAt = new Date();
     this.saveTransactions();
     this.notifyListeners();
+
+    logger.info(`Bridge transaction ${txId} updated to ${updates.status || 'unknown'}`);
+    return true;
   }
 
   /**
    * Get transaction by ID
    */
-  getTransaction(transactionId: string): BridgeTransaction | undefined {
-    return this.transactions.find((tx) => tx.id === transactionId);
+  getTransaction(txId: string): BridgeTransaction | undefined {
+    return this.transactions.find((tx) => tx.id === txId);
   }
 
   /**
@@ -321,68 +324,111 @@ export class BridgeManager {
   }
 
   /**
-   * Get pending transactions
+   * Get active transactions
    */
-  getPendingTransactions(): BridgeTransaction[] {
-    return this.transactions.filter((tx) => tx.status === 'pending' || tx.status === 'processing');
+  getActiveTransactions(): BridgeTransaction[] {
+    return this.transactions.filter(
+      (tx) => tx.status === BridgeStatus.PENDING || tx.status === BridgeStatus.PROCESSING
+    );
   }
 
   /**
    * Get transactions by status
    */
-  getTransactionsByStatus(status: BridgeTransaction['status']): BridgeTransaction[] {
+  getTransactionsByStatus(status: BridgeStatus): BridgeTransaction[] {
     return this.transactions.filter((tx) => tx.status === status);
+  }
+
+  /**
+   * Get transactions by address
+   */
+  getTransactionsByAddress(address: string): BridgeTransaction[] {
+    const lowerAddress = address.toLowerCase();
+    return this.transactions.filter(
+      (tx) =>
+        tx.sender.toLowerCase() === lowerAddress || tx.recipient.toLowerCase() === lowerAddress
+    );
+  }
+
+  /**
+   * Get transactions by chain
+   */
+  getTransactionsByChain(
+    chainId: number,
+    type: 'source' | 'destination' | 'any' = 'any'
+  ): BridgeTransaction[] {
+    if (type === 'source') {
+      return this.transactions.filter((tx) => tx.sourceChain === chainId);
+    } else if (type === 'destination') {
+      return this.transactions.filter((tx) => tx.destinationChain === chainId);
+    } else {
+      return this.transactions.filter(
+        (tx) => tx.sourceChain === chainId || tx.destinationChain === chainId
+      );
+    }
   }
 
   /**
    * Check transaction status on blockchain
    */
-  async checkTransactionStatus(
-    transactionId: string,
-    checkStatus: (
-      sourceTxHash: string,
-      route: BridgeRoute
-    ) => Promise<{
-      status: BridgeTransaction['status'];
-      destinationTxHash?: string;
-    }>
-  ): Promise<void> {
-    const transaction = this.transactions.find((tx) => tx.id === transactionId);
-    if (!transaction || !transaction.sourceTxHash) {
+  async checkTransactionStatus(txId: string): Promise<void> {
+    const transaction = this.getTransaction(txId);
+
+    if (!transaction) {
       return;
     }
 
-    try {
-      const { status, destinationTxHash } = await checkStatus(
-        transaction.sourceTxHash,
-        transaction.route
-      );
-      this.updateTransactionStatus(transactionId, status, destinationTxHash);
-    } catch (error) {
-      logger.error(`Error checking transaction status ${transactionId}:`, error);
+    // Placeholder for actual blockchain status check
+    // In production, this would query the bridge contract
+    if (transaction.status === BridgeStatus.PENDING && transaction.sourceTxHash) {
+      this.updateTransaction(txId, { status: BridgeStatus.PROCESSING });
+    } else if (transaction.status === BridgeStatus.PROCESSING) {
+      // Check if enough time has passed
+      const now = new Date();
+      const elapsedMinutes = (now.getTime() - transaction.createdAt.getTime()) / (1000 * 60);
+
+      if (elapsedMinutes >= transaction.estimatedTime) {
+        this.updateTransaction(txId, {
+          status: BridgeStatus.COMPLETED,
+          completedAt: now,
+          destinationTxHash: '0x' + '1'.repeat(64), // Placeholder
+        });
+      }
     }
   }
 
   /**
-   * Monitor pending transactions
+   * Start monitoring active transactions
    */
-  startMonitoring(
-    checkStatus: (
-      sourceTxHash: string,
-      route: BridgeRoute
-    ) => Promise<{
-      status: BridgeTransaction['status'];
-      destinationTxHash?: string;
-    }>,
-    intervalMs: number = 60000
-  ): NodeJS.Timer {
-    return setInterval(async () => {
-      const pending = this.getPendingTransactions();
+  startMonitoring(intervalMs: number = 30000): void {
+    if (this.statusCheckInterval) {
+      logger.warn('Bridge monitoring already running');
+      return;
+    }
 
-      for (const tx of pending) {
-        await this.checkTransactionStatus(tx.id, checkStatus);
+    this.statusCheckInterval = setInterval(async () => {
+      const active = this.getActiveTransactions();
+      for (const tx of active) {
+        try {
+          await this.checkTransactionStatus(tx.id);
+        } catch (error) {
+          logger.error(`Error checking bridge transaction ${tx.id}:`, error);
+        }
       }
     }, intervalMs);
+
+    logger.info(`Bridge monitoring started (interval: ${intervalMs}ms)`);
+  }
+
+  /**
+   * Stop monitoring
+   */
+  stopMonitoring(): void {
+    if (this.statusCheckInterval) {
+      clearInterval(this.statusCheckInterval);
+      this.statusCheckInterval = null;
+      logger.info('Bridge monitoring stopped');
+    }
   }
 
   /**
@@ -390,13 +436,11 @@ export class BridgeManager {
    */
   subscribe(callback: (transactions: BridgeTransaction[]) => void): () => void {
     this.listeners.add(callback);
-    return () => {
-      this.listeners.delete(callback);
-    };
+    return () => this.listeners.delete(callback);
   }
 
   /**
-   * Notify all listeners
+   * Notify listeners
    */
   private notifyListeners(): void {
     this.listeners.forEach((callback) => {
@@ -409,76 +453,76 @@ export class BridgeManager {
   }
 
   /**
-   * Generate unique ID
+   * Clear completed transactions
    */
-  private generateId(): string {
-    return `bridge_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  clearCompleted(daysOld: number = 7): void {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    this.transactions = this.transactions.filter(
+      (tx) => tx.status !== BridgeStatus.COMPLETED || !tx.completedAt || tx.completedAt > cutoffDate
+    );
+
+    this.saveTransactions();
+    this.notifyListeners();
+    logger.info(`Cleared completed transactions older than ${daysOld} days`);
   }
 
   /**
    * Get bridge statistics
    */
-  getStats(): {
+  getStatistics(): {
     total: number;
-    pending: number;
+    active: number;
     completed: number;
     failed: number;
     totalVolume: string;
-    byRoute: Record<string, number>;
+    totalFees: string;
+    byChain: Record<number, { sent: number; received: number }>;
   } {
-    const byRoute: Record<string, number> = {};
-    let pending = 0;
-    let completed = 0;
-    let failed = 0;
-    let totalVolume = ethers.BigNumber.from(0);
+    const stats = {
+      total: this.transactions.length,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      totalVolume: '0',
+      totalFees: '0',
+      byChain: {} as Record<number, { sent: number; received: number }>,
+    };
+
+    let volume = 0;
+    let fees = 0;
 
     this.transactions.forEach((tx) => {
-      const routeId = tx.route.id;
-      byRoute[routeId] = (byRoute[routeId] || 0) + 1;
-
-      switch (tx.status) {
-        case 'pending':
-        case 'processing':
-          pending++;
-          break;
-        case 'completed':
-          completed++;
-          totalVolume = totalVolume.add(ethers.utils.parseEther(tx.amount));
-          break;
-        case 'failed':
-          failed++;
-          break;
+      if (tx.status === BridgeStatus.PENDING || tx.status === BridgeStatus.PROCESSING) {
+        stats.active++;
+      } else if (tx.status === BridgeStatus.COMPLETED) {
+        stats.completed++;
+      } else if (tx.status === BridgeStatus.FAILED) {
+        stats.failed++;
       }
+
+      volume += parseFloat(tx.amount);
+      fees += parseFloat(tx.fee);
+
+      // By chain
+      if (!stats.byChain[tx.sourceChain]) {
+        stats.byChain[tx.sourceChain] = { sent: 0, received: 0 };
+      }
+      if (!stats.byChain[tx.destinationChain]) {
+        stats.byChain[tx.destinationChain] = { sent: 0, received: 0 };
+      }
+
+      stats.byChain[tx.sourceChain].sent++;
+      stats.byChain[tx.destinationChain].received++;
     });
 
-    return {
-      total: this.transactions.length,
-      pending,
-      completed,
-      failed,
-      totalVolume: ethers.utils.formatEther(totalVolume),
-      byRoute,
-    };
-  }
+    stats.totalVolume = volume.toFixed(6);
+    stats.totalFees = fees.toFixed(6);
 
-  /**
-   * Clear transaction history
-   */
-  clearHistory(): void {
-    this.transactions = this.transactions.filter(
-      (tx) => tx.status === 'pending' || tx.status === 'processing'
-    );
-    this.saveTransactions();
-    this.notifyListeners();
-  }
-
-  /**
-   * Export transactions
-   */
-  export(): string {
-    return JSON.stringify(this.transactions, null, 2);
+    return stats;
   }
 }
 
 // Singleton instance
-export const bridgeManager = new BridgeManager();
+export const bridgeManager = BridgeManager.getInstance(StorageManager.getInstance());
