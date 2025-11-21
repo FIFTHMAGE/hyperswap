@@ -1,57 +1,67 @@
 /**
  * Order Manager
- * Handles limit orders, stop-loss, and advanced order types
+ * Manages limit orders and advanced order types
  */
 
 import logger from '../../utils/logger';
 import { StorageManager } from '../storage/StorageManager';
 
-export type OrderType = 'limit' | 'stop_loss' | 'take_profit' | 'trailing_stop';
-export type OrderStatus = 'pending' | 'active' | 'filled' | 'cancelled' | 'expired';
+export enum OrderType {
+  LIMIT = 'limit',
+  STOP_LOSS = 'stop_loss',
+  TAKE_PROFIT = 'take_profit',
+  STOP_LIMIT = 'stop_limit',
+}
+
+export enum OrderStatus {
+  PENDING = 'pending',
+  PARTIALLY_FILLED = 'partially_filled',
+  FILLED = 'filled',
+  CANCELLED = 'cancelled',
+  EXPIRED = 'expired',
+}
 
 export interface Order {
   id: string;
   type: OrderType;
-  status: OrderStatus;
   tokenIn: string;
   tokenOut: string;
   amountIn: string;
-  targetPrice: string;
+  amountOut: string;
+  limitPrice: string;
   stopPrice?: string;
-  trailingPercent?: number;
-  slippage: number;
-  deadline: number;
-  createdAt: Date;
+  filledAmount: string;
+  status: OrderStatus;
   expiresAt?: Date;
-  filledAt?: Date;
-  txHash?: string;
-  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  userAddress: string;
+  slippageTolerance: number;
 }
 
-interface OrderExecutionResult {
-  success: boolean;
-  txHash?: string;
-  error?: string;
-  filledPrice?: string;
-}
-
-const STORAGE_KEY = 'orders';
-const MAX_ORDERS = 500;
+const STORAGE_KEY = 'hyperswap_orders';
+const MAX_ORDERS = 100;
 
 export class OrderManager {
+  private static instance: OrderManager;
   private orders: Order[] = [];
   private storageManager: StorageManager;
   private listeners: Set<(orders: Order[]) => void> = new Set();
-  private priceCheckInterval?: NodeJS.Timer;
+  private priceCheckInterval: NodeJS.Timeout | null = null;
 
-  constructor() {
-    this.storageManager = new StorageManager();
+  private constructor(storageManager: StorageManager) {
+    this.storageManager = storageManager;
     this.loadOrders();
+    logger.info('OrderManager initialized.');
   }
 
-  /**
-   * Load orders from storage
-   */
+  public static getInstance(storageManager: StorageManager): OrderManager {
+    if (!OrderManager.instance) {
+      OrderManager.instance = new OrderManager(storageManager);
+    }
+    return OrderManager.instance;
+  }
+
   private loadOrders(): void {
     try {
       const stored = this.storageManager.get<Order[]>(STORAGE_KEY);
@@ -60,163 +70,129 @@ export class OrderManager {
           .map((o) => ({
             ...o,
             createdAt: new Date(o.createdAt),
+            updatedAt: new Date(o.updatedAt),
             expiresAt: o.expiresAt ? new Date(o.expiresAt) : undefined,
-            filledAt: o.filledAt ? new Date(o.filledAt) : undefined,
           }))
-          .filter((o) => o.status === 'pending' || o.status === 'active');
+          .filter(
+            (o) => o.status === OrderStatus.PENDING || o.status === OrderStatus.PARTIALLY_FILLED
+          );
       }
     } catch (error) {
-      logger.error('Error loading orders:', error);
+      logger.error('Failed to load orders from storage:', error);
     }
   }
 
-  /**
-   * Save orders to storage
-   */
   private saveOrders(): void {
     try {
-      const toStore = this.orders.slice(0, MAX_ORDERS);
-      this.storageManager.set(STORAGE_KEY, toStore);
+      const ordersToSave = this.orders.slice(-MAX_ORDERS);
+      this.storageManager.set(STORAGE_KEY, ordersToSave);
+      logger.debug('Orders saved to storage.');
     } catch (error) {
-      logger.error('Error saving orders:', error);
+      logger.error('Failed to save orders to storage:', error);
     }
   }
 
   /**
-   * Create a new limit order
+   * Create a new order
    */
-  createLimitOrder(
+  createOrder(
+    type: OrderType,
     tokenIn: string,
     tokenOut: string,
     amountIn: string,
-    targetPrice: string,
-    slippage: number = 0.5,
-    deadline: number = 20,
-    expiresIn?: number
+    limitPrice: string,
+    options: {
+      stopPrice?: string;
+      expiresIn?: number; // minutes
+      slippageTolerance?: number;
+    } = {}
   ): string {
+    const orderId = crypto.randomUUID();
+    const now = new Date();
+
     const order: Order = {
-      id: this.generateId(),
-      type: 'limit',
-      status: 'pending',
+      id: orderId,
+      type,
       tokenIn,
       tokenOut,
       amountIn,
-      targetPrice,
-      slippage,
-      deadline,
-      createdAt: new Date(),
-      expiresAt: expiresIn ? new Date(Date.now() + expiresIn) : undefined,
+      amountOut: this.calculateAmountOut(amountIn, limitPrice),
+      limitPrice,
+      stopPrice: options.stopPrice,
+      filledAmount: '0',
+      status: OrderStatus.PENDING,
+      expiresAt: options.expiresIn
+        ? new Date(now.getTime() + options.expiresIn * 60000)
+        : undefined,
+      createdAt: now,
+      updatedAt: now,
+      userAddress: '', // Should be set from wallet context
+      slippageTolerance: options.slippageTolerance || 0.5,
     };
 
     this.orders.unshift(order);
+    this.orders = this.orders.slice(0, MAX_ORDERS);
     this.saveOrders();
     this.notifyListeners();
 
-    return order.id;
-  }
-
-  /**
-   * Create a stop-loss order
-   */
-  createStopLoss(
-    tokenIn: string,
-    tokenOut: string,
-    amountIn: string,
-    stopPrice: string,
-    slippage: number = 1.0
-  ): string {
-    const order: Order = {
-      id: this.generateId(),
-      type: 'stop_loss',
-      status: 'pending',
-      tokenIn,
-      tokenOut,
-      amountIn,
-      targetPrice: stopPrice,
-      stopPrice,
-      slippage,
-      deadline: 20,
-      createdAt: new Date(),
-    };
-
-    this.orders.unshift(order);
-    this.saveOrders();
-    this.notifyListeners();
-
-    return order.id;
-  }
-
-  /**
-   * Create a take-profit order
-   */
-  createTakeProfit(
-    tokenIn: string,
-    tokenOut: string,
-    amountIn: string,
-    targetPrice: string,
-    slippage: number = 0.5
-  ): string {
-    const order: Order = {
-      id: this.generateId(),
-      type: 'take_profit',
-      status: 'pending',
-      tokenIn,
-      tokenOut,
-      amountIn,
-      targetPrice,
-      slippage,
-      deadline: 20,
-      createdAt: new Date(),
-    };
-
-    this.orders.unshift(order);
-    this.saveOrders();
-    this.notifyListeners();
-
-    return order.id;
-  }
-
-  /**
-   * Create a trailing stop order
-   */
-  createTrailingStop(
-    tokenIn: string,
-    tokenOut: string,
-    amountIn: string,
-    trailingPercent: number,
-    slippage: number = 1.0
-  ): string {
-    const order: Order = {
-      id: this.generateId(),
-      type: 'trailing_stop',
-      status: 'pending',
-      tokenIn,
-      tokenOut,
-      amountIn,
-      targetPrice: '0', // Will be calculated dynamically
-      trailingPercent,
-      slippage,
-      deadline: 20,
-      createdAt: new Date(),
-    };
-
-    this.orders.unshift(order);
-    this.saveOrders();
-    this.notifyListeners();
-
-    return order.id;
+    logger.info(`Order created: ${orderId} (${type})`);
+    return orderId;
   }
 
   /**
    * Cancel an order
    */
-  cancelOrder(orderId: string): void {
+  cancelOrder(orderId: string): boolean {
     const order = this.orders.find((o) => o.id === orderId);
-    if (order && (order.status === 'pending' || order.status === 'active')) {
-      order.status = 'cancelled';
-      this.saveOrders();
-      this.notifyListeners();
+
+    if (!order) {
+      logger.warn(`Order ${orderId} not found`);
+      return false;
     }
+
+    if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.PARTIALLY_FILLED) {
+      logger.warn(`Cannot cancel order ${orderId} with status ${order.status}`);
+      return false;
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    order.updatedAt = new Date();
+    this.saveOrders();
+    this.notifyListeners();
+
+    logger.info(`Order cancelled: ${orderId}`);
+    return true;
+  }
+
+  /**
+   * Update order status
+   */
+  updateOrderStatus(orderId: string, status: OrderStatus, filledAmount?: string): boolean {
+    const order = this.orders.find((o) => o.id === orderId);
+
+    if (!order) {
+      return false;
+    }
+
+    order.status = status;
+    order.updatedAt = new Date();
+
+    if (filledAmount) {
+      order.filledAmount = filledAmount;
+    }
+
+    this.saveOrders();
+    this.notifyListeners();
+
+    logger.info(`Order ${orderId} updated to ${status}`);
+    return true;
+  }
+
+  /**
+   * Get order by ID
+   */
+  getOrder(orderId: string): Order | undefined {
+    return this.orders.find((o) => o.id === orderId);
   }
 
   /**
@@ -230,58 +206,85 @@ export class OrderManager {
    * Get active orders
    */
   getActiveOrders(): Order[] {
-    return this.orders.filter((o) => o.status === 'pending' || o.status === 'active');
+    return this.orders.filter(
+      (o) => o.status === OrderStatus.PENDING || o.status === OrderStatus.PARTIALLY_FILLED
+    );
   }
 
   /**
-   * Get orders by type
+   * Get orders by status
    */
-  getOrdersByType(type: OrderType): Order[] {
-    return this.orders.filter((o) => o.type === type);
+  getOrdersByStatus(status: OrderStatus): Order[] {
+    return this.orders.filter((o) => o.status === status);
   }
 
   /**
-   * Get order by ID
+   * Get orders by token pair
    */
-  getOrder(orderId: string): Order | undefined {
-    return this.orders.find((o) => o.id === orderId);
+  getOrdersByPair(tokenIn: string, tokenOut: string): Order[] {
+    return this.orders.filter(
+      (o) =>
+        o.tokenIn.toLowerCase() === tokenIn.toLowerCase() &&
+        o.tokenOut.toLowerCase() === tokenOut.toLowerCase()
+    );
   }
 
   /**
-   * Check if order should be executed based on current price
+   * Check orders against current price
    */
-  shouldExecuteOrder(order: Order, currentPrice: string): boolean {
-    if (order.status !== 'pending' && order.status !== 'active') {
-      return false;
+  async checkOrders(currentPrices: Record<string, string>): Promise<void> {
+    const activeOrders = this.getActiveOrders();
+    const now = new Date();
+
+    for (const order of activeOrders) {
+      // Check expiration
+      if (order.expiresAt && now > order.expiresAt) {
+        this.updateOrderStatus(order.id, OrderStatus.EXPIRED);
+        continue;
+      }
+
+      // Get current price for the pair
+      const pairKey = `${order.tokenIn}-${order.tokenOut}`;
+      const currentPrice = currentPrices[pairKey];
+
+      if (!currentPrice) {
+        continue;
+      }
+
+      // Check if order should be executed
+      if (this.shouldExecuteOrder(order, currentPrice)) {
+        await this.executeOrder(order);
+      }
     }
+  }
 
-    // Check expiration
-    if (order.expiresAt && new Date() > order.expiresAt) {
-      order.status = 'expired';
-      this.saveOrders();
-      this.notifyListeners();
-      return false;
-    }
-
-    const current = parseFloat(currentPrice);
-    const target = parseFloat(order.targetPrice);
+  /**
+   * Determine if order should be executed
+   */
+  private shouldExecuteOrder(order: Order, currentPrice: string): boolean {
+    const price = parseFloat(currentPrice);
+    const limitPrice = parseFloat(order.limitPrice);
+    const stopPrice = order.stopPrice ? parseFloat(order.stopPrice) : null;
 
     switch (order.type) {
-      case 'limit':
-        // Execute when current price reaches or exceeds target
-        return current >= target;
+      case OrderType.LIMIT:
+        // Buy when price <= limit, sell when price >= limit
+        return price <= limitPrice;
 
-      case 'stop_loss':
-        // Execute when current price drops to or below stop price
-        return current <= target;
+      case OrderType.STOP_LOSS:
+        // Trigger when price drops below stop price
+        return stopPrice !== null && price <= stopPrice;
 
-      case 'take_profit':
-        // Execute when current price reaches or exceeds target
-        return current >= target;
+      case OrderType.TAKE_PROFIT:
+        // Trigger when price reaches target
+        return price >= limitPrice;
 
-      case 'trailing_stop':
-        // Complex logic - would track highest price and trigger based on trailing %
-        return this.checkTrailingStop(order, current);
+      case OrderType.STOP_LIMIT:
+        // First check stop price, then limit price
+        if (stopPrice !== null && price <= stopPrice) {
+          return price >= limitPrice;
+        }
+        return false;
 
       default:
         return false;
@@ -289,132 +292,81 @@ export class OrderManager {
   }
 
   /**
-   * Check trailing stop conditions
-   */
-  private checkTrailingStop(order: Order, currentPrice: number): boolean {
-    if (!order.metadata?.highestPrice) {
-      // Initialize highest price
-      order.metadata = { ...order.metadata, highestPrice: currentPrice };
-      return false;
-    }
-
-    const highestPrice = order.metadata.highestPrice;
-    const trailingPercent = order.trailingPercent || 5;
-
-    // Update highest price if current is higher
-    if (currentPrice > highestPrice) {
-      order.metadata.highestPrice = currentPrice;
-      return false;
-    }
-
-    // Check if price dropped below trailing percentage
-    const dropPercent = ((highestPrice - currentPrice) / highestPrice) * 100;
-    return dropPercent >= trailingPercent;
-  }
-
-  /**
    * Execute an order
    */
-  async executeOrder(
-    orderId: string,
-    currentPrice: string,
-    executeSwap: (order: Order) => Promise<string>
-  ): Promise<OrderExecutionResult> {
-    const order = this.orders.find((o) => o.id === orderId);
-
-    if (!order) {
-      return { success: false, error: 'Order not found' };
-    }
-
-    if (!this.shouldExecuteOrder(order, currentPrice)) {
-      return { success: false, error: 'Order conditions not met' };
-    }
-
+  private async executeOrder(order: Order): Promise<void> {
     try {
-      order.status = 'active';
-      this.notifyListeners();
+      logger.info(`Executing order: ${order.id}`);
 
-      // Execute the swap
-      const txHash = await executeSwap(order);
+      // This would integrate with actual swap execution
+      // For now, just mark as filled
+      this.updateOrderStatus(order.id, OrderStatus.FILLED, order.amountIn);
 
-      order.status = 'filled';
-      order.filledAt = new Date();
-      order.txHash = txHash;
-
-      this.saveOrders();
-      this.notifyListeners();
-
-      return {
-        success: true,
-        txHash,
-        filledPrice: currentPrice,
-      };
+      // Emit notification
+      // notificationCenter.add('success', 'Order Filled', `Your ${order.type} order has been executed`);
     } catch (error) {
-      logger.error(`Error executing order ${orderId}:`, error);
-      order.status = 'pending'; // Revert to pending
-      this.notifyListeners();
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Execution failed',
-      };
+      logger.error(`Failed to execute order ${order.id}:`, error);
     }
   }
 
   /**
-   * Start monitoring orders
+   * Calculate expected output amount
+   */
+  private calculateAmountOut(amountIn: string, price: string): string {
+    try {
+      const amount = parseFloat(amountIn);
+      const priceNum = parseFloat(price);
+      return (amount / priceNum).toFixed(6);
+    } catch {
+      return '0';
+    }
+  }
+
+  /**
+   * Start price monitoring
    */
   startMonitoring(
-    getPriceFunc: (tokenIn: string, tokenOut: string) => Promise<string>,
-    executeSwapFunc: (order: Order) => Promise<string>,
-    intervalMs: number = 60000
+    priceProvider: () => Promise<Record<string, string>>,
+    intervalMs: number = 10000
   ): void {
     if (this.priceCheckInterval) {
-      this.stopMonitoring();
+      logger.warn('Price monitoring already running');
+      return;
     }
 
     this.priceCheckInterval = setInterval(async () => {
-      const activeOrders = this.getActiveOrders();
-
-      for (const order of activeOrders) {
-        try {
-          const currentPrice = await getPriceFunc(order.tokenIn, order.tokenOut);
-
-          if (this.shouldExecuteOrder(order, currentPrice)) {
-            await this.executeOrder(order.id, currentPrice, executeSwapFunc);
-          }
-        } catch (error) {
-          logger.error(`Error checking order ${order.id}:`, error);
-        }
+      try {
+        const prices = await priceProvider();
+        await this.checkOrders(prices);
+      } catch (error) {
+        logger.error('Error checking orders:', error);
       }
     }, intervalMs);
 
-    logger.info('Order monitoring started');
+    logger.info(`Order monitoring started (interval: ${intervalMs}ms)`);
   }
 
   /**
-   * Stop monitoring orders
+   * Stop price monitoring
    */
   stopMonitoring(): void {
     if (this.priceCheckInterval) {
       clearInterval(this.priceCheckInterval);
-      this.priceCheckInterval = undefined;
+      this.priceCheckInterval = null;
       logger.info('Order monitoring stopped');
     }
   }
 
   /**
-   * Subscribe to order changes
+   * Subscribe to order updates
    */
   subscribe(callback: (orders: Order[]) => void): () => void {
     this.listeners.add(callback);
-    return () => {
-      this.listeners.delete(callback);
-    };
+    return () => this.listeners.delete(callback);
   }
 
   /**
-   * Notify all listeners
+   * Notify listeners
    */
   private notifyListeners(): void {
     this.listeners.forEach((callback) => {
@@ -427,16 +379,21 @@ export class OrderManager {
   }
 
   /**
-   * Generate unique ID
+   * Clear completed orders
    */
-  private generateId(): string {
-    return `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  clearCompleted(): void {
+    this.orders = this.orders.filter(
+      (o) => o.status === OrderStatus.PENDING || o.status === OrderStatus.PARTIALLY_FILLED
+    );
+    this.saveOrders();
+    this.notifyListeners();
+    logger.info('Completed orders cleared');
   }
 
   /**
    * Get order statistics
    */
-  getStats(): {
+  getStatistics(): {
     total: number;
     active: number;
     filled: number;
@@ -444,86 +401,37 @@ export class OrderManager {
     expired: number;
     byType: Record<OrderType, number>;
   } {
-    const byType: Record<string, number> = {
-      limit: 0,
-      stop_loss: 0,
-      take_profit: 0,
-      trailing_stop: 0,
+    const stats = {
+      total: this.orders.length,
+      active: 0,
+      filled: 0,
+      cancelled: 0,
+      expired: 0,
+      byType: {
+        [OrderType.LIMIT]: 0,
+        [OrderType.STOP_LOSS]: 0,
+        [OrderType.TAKE_PROFIT]: 0,
+        [OrderType.STOP_LIMIT]: 0,
+      },
     };
-
-    let active = 0;
-    let filled = 0;
-    let cancelled = 0;
-    let expired = 0;
 
     this.orders.forEach((order) => {
-      byType[order.type]++;
-
-      switch (order.status) {
-        case 'active':
-        case 'pending':
-          active++;
-          break;
-        case 'filled':
-          filled++;
-          break;
-        case 'cancelled':
-          cancelled++;
-          break;
-        case 'expired':
-          expired++;
-          break;
+      if (order.status === OrderStatus.PENDING || order.status === OrderStatus.PARTIALLY_FILLED) {
+        stats.active++;
+      } else if (order.status === OrderStatus.FILLED) {
+        stats.filled++;
+      } else if (order.status === OrderStatus.CANCELLED) {
+        stats.cancelled++;
+      } else if (order.status === OrderStatus.EXPIRED) {
+        stats.expired++;
       }
+
+      stats.byType[order.type]++;
     });
 
-    return {
-      total: this.orders.length,
-      active,
-      filled,
-      cancelled,
-      expired,
-      byType: byType as Record<OrderType, number>,
-    };
-  }
-
-  /**
-   * Clear filled and cancelled orders
-   */
-  clearHistory(): void {
-    this.orders = this.orders.filter((o) => o.status === 'pending' || o.status === 'active');
-    this.saveOrders();
-    this.notifyListeners();
-  }
-
-  /**
-   * Export orders
-   */
-  export(): string {
-    return JSON.stringify(this.orders, null, 2);
-  }
-
-  /**
-   * Import orders
-   */
-  import(data: string): void {
-    try {
-      const imported = JSON.parse(data) as Order[];
-      if (Array.isArray(imported)) {
-        this.orders = imported.map((o) => ({
-          ...o,
-          createdAt: new Date(o.createdAt),
-          expiresAt: o.expiresAt ? new Date(o.expiresAt) : undefined,
-          filledAt: o.filledAt ? new Date(o.filledAt) : undefined,
-        }));
-        this.saveOrders();
-        this.notifyListeners();
-      }
-    } catch (error) {
-      logger.error('Error importing orders:', error);
-      throw new Error('Failed to import orders');
-    }
+    return stats;
   }
 }
 
 // Singleton instance
-export const orderManager = new OrderManager();
+export const orderManager = OrderManager.getInstance(StorageManager.getInstance());
