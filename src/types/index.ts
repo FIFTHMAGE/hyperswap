@@ -1,47 +1,49 @@
 /**
- * Central type definitions export
+ * Type definitions
+ * @module types
  */
 
-// Core types
-export * from './api.types';
-export * from './blockchain.types';
-export * from './domain.types';
-export * from './ui.types';
-export * from './utility.types';
-export * from './service.types';
-export * from './config.types';
+export interface Token {
+  address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoURI?: string;
+  chainId: number;
+}
 
-// Re-export commonly used types for convenience
-export type {
-  Address,
-  Hash,
-  ChainId,
-  Token,
-  TokenAmount,
-} from './blockchain.types';
+export interface SwapQuote {
+  fromToken: Token;
+  toToken: Token;
+  fromAmount: string;
+  toAmount: string;
+  priceImpact: number;
+  slippage: number;
+  route: string[];
+  gasEstimate: string;
+}
 
-export type {
-  SwapQuote,
-  Pool,
-  Portfolio,
-  TokenBalance,
-} from './domain.types';
+export interface Transaction {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  timestamp: number;
+  chainId: number;
+}
 
-export type {
-  ApiResponse,
-  ApiError,
-  PaginatedApiResponse,
-} from './api.types';
+export interface WalletState {
+  address: string | null;
+  chainId: number | null;
+  isConnected: boolean;
+  balance: string | null;
+}
 
-export type {
-  ThemeMode,
-  ToastType,
-  LoadingState,
-  AsyncState,
-} from './ui.types';
-
-export type {
-  DeepPartial,
-  RequireProps,
-  Result,
-} from './utility.types';
+export interface PriceData {
+  price: number;
+  change24h: number;
+  volume24h: number;
+  marketCap: number;
+  timestamp: number;
+}
