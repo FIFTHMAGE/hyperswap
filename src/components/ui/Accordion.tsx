@@ -1,76 +1,63 @@
 /**
- * Accordion component
+ * Accordion - Collapsible accordion component
  * @module components/ui
  */
 
-'use client';
+import React, { useState } from 'react';
+import { View, Text, Pressable } from 'react-native';
 
-import { useState, type ReactNode } from 'react';
-
-interface AccordionItemProps {
+export interface AccordionItem {
+  id: string;
   title: string;
-  content: ReactNode;
-  defaultOpen?: boolean;
+  content: React.ReactNode;
 }
 
-interface AccordionProps {
-  items: AccordionItemProps[];
+export interface AccordionProps {
+  items: AccordionItem[];
   allowMultiple?: boolean;
   className?: string;
 }
 
 export function Accordion({ items, allowMultiple = false, className = '' }: AccordionProps) {
-  const [openItems, setOpenItems] = useState<Set<number>>(
-    new Set(items.map((item, index) => (item.defaultOpen ? index : -1)).filter((i) => i >= 0))
-  );
+  const [openItems, setOpenItems] = useState<Set<string>>(new Set());
 
-  const toggleItem = (index: number) => {
-    const newOpenItems = new Set(openItems);
-
-    if (newOpenItems.has(index)) {
-      newOpenItems.delete(index);
-    } else {
-      if (!allowMultiple) {
-        newOpenItems.clear();
+  const toggleItem = (id: string) => {
+    setOpenItems((prev) => {
+      const newSet = new Set(allowMultiple ? prev : []);
+      if (prev.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
       }
-      newOpenItems.add(index);
-    }
-
-    setOpenItems(newOpenItems);
+      return newSet;
+    });
   };
 
   return (
-    <div
-      className={`border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700 ${className}`}
-    >
-      {items.map((item, index) => (
-        <div key={index}>
-          <button
-            onClick={() => toggleItem(index)}
-            className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+    <View className={className}>
+      {items.map((item, index) => {
+        const isOpen = openItems.has(item.id);
+        const isLast = index === items.length - 1;
+
+        return (
+          <View
+            key={item.id}
+            className={`border border-gray-200 ${!isLast ? 'border-b-0' : ''} ${index === 0 ? 'rounded-t-lg' : ''} ${isLast ? 'rounded-b-lg' : ''}`}
           >
-            <span className="font-medium text-gray-900 dark:text-white">{item.title}</span>
-            <svg
-              className={`w-5 h-5 text-gray-500 transition-transform ${openItems.has(index) ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <Pressable
+              onPress={() => toggleItem(item.id)}
+              className="flex-row justify-between items-center p-4 bg-white"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-          {openItems.has(index) && (
-            <div className="px-4 py-3 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
-              {item.content}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+              <Text className="font-medium text-gray-900">{item.title}</Text>
+              <Text className="text-gray-500 text-lg">{isOpen ? '−' : '+'}</Text>
+            </Pressable>
+
+            {isOpen && (
+              <View className="p-4 bg-gray-50 border-t border-gray-200">{item.content}</View>
+            )}
+          </View>
+        );
+      })}
+    </View>
   );
 }
