@@ -1,19 +1,24 @@
 /**
- * Divider component
+ * Divider - Separator line component
  * @module components/ui
  */
 
-'use client';
+import React from 'react';
+import { View } from 'react-native';
 
-interface DividerProps {
+export interface DividerProps {
   orientation?: 'horizontal' | 'vertical';
   className?: string;
 }
 
 export function Divider({ orientation = 'horizontal', className = '' }: DividerProps) {
-  if (orientation === 'vertical') {
-    return <div className={`w-px bg-gray-200 dark:bg-gray-700 ${className}`} />;
-  }
-
-  return <div className={`h-px bg-gray-200 dark:bg-gray-700 ${className}`} />;
+  return (
+    <View
+      className={`
+        bg-gray-200
+        ${orientation === 'horizontal' ? 'h-px w-full' : 'w-px h-full'}
+        ${className}
+      `}
+    />
+  );
 }
