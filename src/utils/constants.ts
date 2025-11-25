@@ -1,45 +1,39 @@
 /**
- * Application constants
- * @module utils
+ * Application Constants
+ * Centralized constants for maintainability
  */
 
-export const APP_NAME = 'HyperSwap';
-export const APP_VERSION = '1.0.0';
-
-export const DEFAULT_SLIPPAGE = 0.5;
-export const MAX_SLIPPAGE = 50;
-export const MIN_SLIPPAGE = 0.1;
-
-export const DEFAULT_DEADLINE = 20;
-export const MAX_DEADLINE = 60;
-export const MIN_DEADLINE = 5;
-
-export const REFRESH_INTERVAL = 15000;
-export const PRICE_UPDATE_INTERVAL = 10000;
-export const BALANCE_UPDATE_INTERVAL = 30000;
-
-export const MAX_TOKEN_DECIMALS = 18;
-export const DEFAULT_TOKEN_DECIMALS = 18;
-
-export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
-export const TRANSACTION_STATUS = {
-  PENDING: 'PENDING',
-  CONFIRMED: 'CONFIRMED',
-  FAILED: 'FAILED',
-  CANCELLED: 'CANCELLED',
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  INTERNAL_ERROR: 500,
 } as const;
 
-export const NOTIFICATION_DURATION = {
-  SUCCESS: 5000,
-  ERROR: 8000,
-  WARNING: 6000,
-  INFO: 4000,
+export const CACHE_TTL = {
+  SHORT: 60,        // 1 minute
+  MEDIUM: 300,      // 5 minutes
+  LONG: 3600,       // 1 hour
+  DAY: 86400,       // 24 hours
 } as const;
 
-export const LOCAL_STORAGE_KEYS = {
-  SETTINGS: 'hyperswap_settings',
-  FAVORITES: 'hyperswap_favorites',
-  HISTORY: 'hyperswap_history',
-  THEME: 'hyperswap_theme',
+export const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 100,
+} as const;
+
+export const VALIDATION = {
+  MIN_PASSWORD_LENGTH: 8,
+  MAX_STRING_LENGTH: 1000,
+  EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  UUID_REGEX: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+} as const;
+
+export const RATE_LIMIT = {
+  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
+  MAX_REQUESTS: 100,
 } as const;
