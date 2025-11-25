@@ -1,10 +1,10 @@
-import { WalletWrappedStats } from '../types/wrapped';
-import { Transaction } from '../types/transaction';
-import { TokenBalance } from '../types/token';
 import { NFTBalance } from '../types/nft';
 import { SUPPORTED_CHAINS } from '../constants/chains';
-import { getActiveDays, getActiveMonths } from '../utils/date';
+import { TokenBalance } from '../types/token';
+import { Transaction } from '../types/transaction';
+import { WalletWrappedStats } from '../types/wrapped';
 import { findMostCommon, sumValues } from '../utils/calculations';
+import { getActiveDays, getActiveMonths } from '../utils/date';
 
 export function processWalletData(
   address: string,

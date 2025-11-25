@@ -1,6 +1,6 @@
-import { covalentClient } from './client';
 import { API_ENDPOINTS } from '../constants/api';
 import { TokenBalance } from '../types/token';
+import { covalentClient } from './client';
 
 interface BalancesResponse {
   address: string;

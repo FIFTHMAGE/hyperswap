@@ -1,10 +1,10 @@
-import { SUPPORTED_CHAINS } from '../constants/chains';
-import { fetchTransactions } from './transactions';
-import { fetchTokenBalances } from './balances';
-import { fetchNFTBalances } from './nfts';
-import { Transaction } from '../types/transaction';
-import { TokenBalance } from '../types/token';
 import { NFTBalance } from '../types/nft';
+import { SUPPORTED_CHAINS } from '../constants/chains';
+import { TokenBalance } from '../types/token';
+import { Transaction } from '../types/transaction';
+import { fetchNFTBalances } from './nfts';
+import { fetchTokenBalances } from './balances';
+import { fetchTransactions } from './transactions';
 
 export async function fetchMultiChainTransactions(
   address: string

@@ -1,6 +1,6 @@
-import { covalentClient } from './client';
 import { API_ENDPOINTS } from '../constants/api';
 import { Transaction, TransactionResponse } from '../types/transaction';
+import { covalentClient } from './client';
 
 export async function fetchTransactions(
   chainName: string,

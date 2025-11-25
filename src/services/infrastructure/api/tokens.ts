@@ -1,6 +1,6 @@
-import { covalentClient } from './client';
 import { API_ENDPOINTS } from '../constants/api';
 import { TokenTransfer } from '../types/token';
+import { covalentClient } from './client';
 
 interface TokenTransfersResponse {
   address: string;

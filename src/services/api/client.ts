@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+
 import { COVALENT_API_BASE_URL } from '../constants/api';
 
 class CovalentAPIClient {

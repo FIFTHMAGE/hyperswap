@@ -1,6 +1,6 @@
-import { covalentClient } from './client';
 import { API_ENDPOINTS } from '../constants/api';
 import { NFTBalance } from '../types/nft';
+import { covalentClient } from './client';
 
 interface NFTBalancesResponse {
   address: string;
