@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { wrappedAnalyticsService } from '@/lib/api/wrapped-analytics';
 
 export async function POST(request: NextRequest) {
@@ -6,24 +7,15 @@ export async function POST(request: NextRequest) {
     const { address, year } = await request.json();
 
     if (!address || !year) {
-      return NextResponse.json(
-        { error: 'Address and year are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Address and year are required' }, { status: 400 });
     }
 
-    const wrappedData = await wrappedAnalyticsService.generateWrappedData(
-      address,
-      year
-    );
+    const wrappedData = await wrappedAnalyticsService.generateWrappedData(address, year);
 
     return NextResponse.json(wrappedData);
   } catch (error) {
     console.error('Wrapped generation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate wrapped' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to generate wrapped' }, { status: 500 });
   }
 }
 
@@ -33,10 +25,7 @@ export async function GET(request: NextRequest) {
   const year = searchParams.get('year');
 
   if (!address || !year) {
-    return NextResponse.json(
-      { error: 'Address and year are required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Address and year are required' }, { status: 400 });
   }
 
   // Mock wrapped data retrieval
