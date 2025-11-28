@@ -1,13 +1,18 @@
+/** @type {import('jest').Config} */
 module.exports = {
   preset: 'jest-expo',
+  testEnvironment: 'jsdom',
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|viem|wagmi|@wagmi|@tanstack)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
     '!src/**/*.stories.tsx',
     '!src/**/__tests__/**',
+    '!src/**/__mocks__/**',
+    '!src/**/index.ts',
+    '!src/types/**',
   ],
   coverageThreshold: {
     global: {
@@ -17,6 +22,7 @@ module.exports = {
       statements: 70,
     },
   },
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -27,6 +33,31 @@ module.exports = {
     '^@services/(.*)$': '<rootDir>/src/services/$1',
     '^@constants/(.*)$': '<rootDir>/src/constants/$1',
     '^@types/(.*)$': '<rootDir>/src/types/$1',
+    '^@store/(.*)$': '<rootDir>/src/store/$1',
+    '^@lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@contexts/(.*)$': '<rootDir>/src/contexts/$1',
+    '^@core/(.*)$': '<rootDir>/src/core/$1',
+    '^@shared/(.*)$': '<rootDir>/src/shared/$1',
+    '^@infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
   },
-  testMatch: ['**/__tests__/**/*.test.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: [
+    '**/__tests__/**/*.test.[jt]s?(x)',
+    '**/?(*.)+(spec|test).[jt]s?(x)',
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/build/',
+    '/.next/',
+  ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  verbose: true,
+  testTimeout: 10000,
+  clearMocks: true,
+  restoreMocks: true,
+  maxWorkers: '50%',
+  watchPlugins: [
+    'jest-watch-typeahead/filename',
+    'jest-watch-typeahead/testname',
+  ],
 };
