@@ -1,8 +1,9 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+
+import { NavigationContainer } from '@react-navigation/native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaView, StatusBar } from 'react-native';
+import { createStackNavigator } from '@react-navigation/stack';
 
 // Screens would be imported here
 // import HomeScreen from './src/screens/HomeScreen';
